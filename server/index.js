@@ -4,7 +4,7 @@ require('dotenv').config();
 
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
-const DB_NAME = process.env.DB_NAME || 'testdb';
+const DB_NAME = process.env.DB_NAME || 'mygamelistdb';
 
 const app = express();
 app.use(express.json());
