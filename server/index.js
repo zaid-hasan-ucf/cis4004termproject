@@ -8,6 +8,8 @@ const DB_NAME = process.env.DB_NAME || 'testdb';
 
 const app = express();
 app.use(express.json());
+const cors = require('cors');
+app.use(cors());
 
 app.get('/api/ping', (req, res) => res.json({ ok: true, time: Date.now() }));
 
