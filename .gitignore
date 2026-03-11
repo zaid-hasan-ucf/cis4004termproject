@@ -29,11 +29,4 @@ data/db/_tmp
 data/db/diagnostic.data
 data/db/journal
 data/db/mongod.lock
-data/db/*.wt
-data/db/*.turtle
-data/db/WiredTiger
 data/db/WiredTiger.lock
-data/db/WiredTiger.turtle
-data/db/WiredTiger.wt
-data/db/sizeStorer.wt
-data/db/storage.bson
