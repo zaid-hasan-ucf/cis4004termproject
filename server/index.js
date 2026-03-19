@@ -1,36 +1,63 @@
 const express = require('express');
 const dbConn = require('./db/connection');
+const bcrypt = require('bcrypt');
+const cors = require('cors');
 require('dotenv').config();
 
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
 const DB_NAME = process.env.DB_NAME || 'mygamelistdb';
+const SALT = 10; 
 
 const app = express();
 app.use(express.json());
-const cors = require('cors');
 app.use(cors());
 
-app.get('/api/ping', (req, res) => res.json({ ok: true, time: Date.now() }));
-
-app.get('/api/items', async (req, res) => {
+app.post('/api/auth/register', async (req, res) => {
   try {
-    const items = await dbConn.getDb().collection('items').find({}).toArray();
-    res.json(items);
+    const { name, password } = req.body;
+    if (!name || !password) {
+      return res.status(400).json({ error: 'Name and password are required' });
+    }
+
+    const users = dbConn.getDb().collection('Users');
+
+    const isExisting = await users.findOne({ name });
+    if (isExisting) {
+      return res.status(409).json({ error: 'User already exists' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, SALT);
+    const insertAccount = await users.insertOne({ name, password: hashedPassword });
+
+    res.status(201).json({ message: 'Account created'});
   } catch (err) {
-    console.error('GET /api/items error:', err.message || err);
-    res.status(500).json({ error: 'failed to fetch items' });
+      res.status(500).json({ error: 'Account creation failed' });
   }
 });
 
-app.post('/api/items', async (req, res) => {
+app.post('/api/auth/login', async (req, res) => {
   try {
-    const item = req.body;
-    const result = await dbConn.getDb().collection('items').insertOne(item);
-    res.json({ insertedId: result.insertedId });
+    const { name, password } = req.body;
+    if (!name || !password) {
+      return res.status(400).json({ error: 'Name and password are required' });
+    }
+
+    const users = dbConn.getDb().collection('Users');
+
+    const user = await users.findOne({ name });
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid name or password' });
+    }
+
+    const compare = await bcrypt.compare(password, user.password);
+    if (!compare) {
+      return res.status(401).json({ error: 'Invalid name or password' });
+    }
+
+    res.json({ message: 'Login successful', username: user.name });
   } catch (err) {
-    console.error('POST /api/items error:', err.message || err);
-    res.status(500).json({ error: 'failed to insert item' });
+      res.status(500).json({ error: 'Failed to login' });
   }
 });
 
