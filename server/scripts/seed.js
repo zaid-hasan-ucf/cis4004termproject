@@ -1,23 +1,20 @@
 // NOTE: The entirety of this script was developed with the assistance of Claude AI to
-// assist with pre-populating the DB with initial data. It can be run with node seed.js
-
+// assist with pre-populating the DB with initial data. It can be run with node seeder.js
 const { MongoClient } = require("mongodb");
+const bcrypt = require("bcrypt");
 
 const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017";
 const DB_NAME = "mygamelistdb";
+const SALT = 10;
 
 async function seed() {
   const client = new MongoClient(MONGO_URI);
-
   try {
-    // Handle connection failures explicitly so they can be distinguished
-    // from errors that occur during the seeding operations.
     try {
       await client.connect();
       console.log("Connected to MongoDB");
     } catch (err) {
       console.error(`Failed to connect to MongoDB at ${MONGO_URI}:`, err);
-      // Rethrow so the outer seed().catch can still handle process exit.
       throw err;
     }
 
@@ -44,10 +41,14 @@ async function seed() {
     ]);
     const superuserRoleId = insertedIds[0];
 
+    const passwordHash = await bcrypt.hash("1234", SALT);
     const { insertedId: adminId } = await users.insertOne({
       username: "admin",
-      password: "1234",
-      role: superuserRoleId,
+      passwordHash,
+      role: "superuser",
+      bio: "",
+      avatarUrl: "",
+      createdAt: new Date(),
     });
 
     const { insertedId: publisherId } = await publishers.insertOne({
@@ -59,16 +60,15 @@ async function seed() {
       publisher: publisherId,
     });
 
-    console.log("Database seeding completed successfully.");
-
     await reviews.insertOne({
       user: adminId,
       game: gameId,
       rating: 5,
       body: "Test review body",
     });
+
+    console.log("Database seeding completed successfully.");
   } finally {
-    // Ensure the client is closed even if an error occurs.
     await client.close();
   }
 }
