@@ -6,6 +6,7 @@
     "dev:server": "npm --prefix server run dev",
     "start:client": "npm --prefix client run preview",
     "dev:client": "npm --prefix client run dev",
+    "db": "mongod --config mongod.cfg",
     "dev": "concurrently \"npm --prefix server run dev\" \"npm --prefix client run dev\""
   },
   "devDependencies": {

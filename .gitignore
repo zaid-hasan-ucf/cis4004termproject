@@ -23,6 +23,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+bak/
 
 # Ignore data/db temp logs
 data/db/_tmp
@@ -30,3 +31,4 @@ data/db/diagnostic.data
 data/db/journal
 data/db/mongod.lock
 data/db/WiredTiger.lock
+data/db/
