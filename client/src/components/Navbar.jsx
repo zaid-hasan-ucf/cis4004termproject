@@ -14,7 +14,6 @@ function UserDropdown({ user, onClose, onLogout }) {
   return (
     <div className="dropdown" role="menu">
       <Link to={`/profile/${user.username}`} onClick={onClose}>Profile</Link>
-      <Link to="/library" onClick={onClose}>My Library</Link>
       <Link to="/settings" onClick={onClose}>Settings</Link>
       {user.role === 'admin' && (
         <>
@@ -40,6 +39,7 @@ function UserMenu({ user }) {
         setOpen(false)
       }
     }
+
     if (open) document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [open])
@@ -61,6 +61,7 @@ function UserMenu({ user }) {
         <span>{user.username}</span>
         <span className="chevron">{open ? '▴' : '▾'}</span>
       </button>
+
       {open && (
         <UserDropdown
           user={user}
@@ -81,12 +82,18 @@ export default function Navbar() {
         <Link to="/home" className="navbar-brand">MyGameList</Link>
         <Link to="/home" className="nav-link">Home</Link>
         <Link to="/search" className="nav-link">Browse</Link>
+        <Link to="/library" className="nav-link">My Library</Link>
       </div>
+
       <div className="navbar-right">
         {user ? (
           <UserMenu user={user} />
         ) : (
-          <Link to="/" className="neon-btn" style={{ fontSize: '0.85rem', padding: '0.5rem 1rem' }}>
+          <Link
+            to="/"
+            className="neon-btn"
+            style={{ fontSize: '0.85rem', padding: '0.5rem 1rem' }}
+          >
             Sign In
           </Link>
         )}

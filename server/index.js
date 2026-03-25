@@ -4,6 +4,9 @@ const bcrypt = require('bcrypt');
 const cors = require('cors');
 require('dotenv').config();
 
+//Routes
+const gamesRoutes = require('./routes/games')
+
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
 const DB_NAME = process.env.DB_NAME || 'mygamelistdb';
@@ -12,6 +15,7 @@ const SALT = 10;
 const app = express();
 app.use(express.json());
 app.use(cors());
+app.use('/api/games', gamesRoutes)
 
 app.post('/api/auth/register', async (req, res) => {
   try {
