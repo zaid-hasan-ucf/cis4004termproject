@@ -31,4 +31,4 @@ data/db/diagnostic.data
 data/db/journal
 data/db/mongod.lock
 data/db/WiredTiger.lock
-# data/db/
+data/db
