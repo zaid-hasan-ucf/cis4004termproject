@@ -25,10 +25,7 @@ dist-ssr
 *.sw?
 bak/
 
-# Ignore data/db temp logs
-data/db/_tmp
-data/db/diagnostic.data
-data/db/journal
-data/db/mongod.lock
-data/db/WiredTiger.lock
-data/db/
+# Ignore data/db contents but allow placeholder.txt
+# Ignore everything under data/db
+data/db/*
+!data/db/placeholder.txt
