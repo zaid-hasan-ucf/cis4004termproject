@@ -7,6 +7,7 @@ import RegisterPage from './pages/RegisterPage'
 import HomePage from './pages/HomePage'
 import UserProfilePage from './pages/UserProfilePage'
 import GameDetailPage from './pages/GameDetailPage'
+import AdminPage from './pages/adminPage'
 import './App.css'
 
 export default function App() {
