@@ -5,7 +5,10 @@ const cors = require('cors');
 require('dotenv').config();
 
 //Routes
-const gamesRoutes = require('./routes/games')
+const authRoutes    = require('./routes/auth');
+const gamesRoutes   = require('./routes/games');
+const reviewsRoutes = require('./routes/reviews');
+const usersRoutes   = require('./routes/users');
 
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
@@ -15,70 +18,11 @@ const SALT = 10;
 const app = express();
 app.use(express.json());
 app.use(cors());
-app.use('/api/games', gamesRoutes)
 
-app.post('/api/auth/register', async (req, res) => {
-  try {
-    const { username, password } = req.body;
-    if (!username || !password) {
-      return res.status(400).json({ error: 'Username and password are required' });
-    }
-
-    const users = dbConn.getDb().collection('users');
-
-    const existing = await users.findOne({ username });
-    if (existing) {
-      return res.status(409).json({ error: 'Username already taken' });
-    }
-
-    const passwordHash = await bcrypt.hash(password, SALT);
-    const result = await users.insertOne({
-      username,
-      passwordHash,
-      role: 'user',
-      bio: '',
-      avatarUrl: '',
-      createdAt: new Date(),
-    });
-
-    res.status(201).json({ message: 'Account created' });
-  } catch (err) {
-    res.status(500).json({ error: 'Account creation failed' });
-  }
-});
-
-app.post('/api/auth/login', async (req, res) => {
-  try {
-    const { username, password } = req.body;
-    if (!username || !password) {
-      return res.status(400).json({ error: 'Username and password are required' });
-    }
-
-    const users = dbConn.getDb().collection('users');
-
-    const user = await users.findOne({ username });
-    if (!user) {
-      return res.status(401).json({ error: 'Invalid username or password' });
-    }
-
-    const storedHash = user.passwordHash || user.password;
-    if (!storedHash) {
-      return res.status(401).json({ error: 'Invalid username or password' });
-    }
-
-    const match = await bcrypt.compare(password, storedHash);
-    if (!match) {
-      return res.status(401).json({ error: 'Invalid username or password' });
-    }
-
-    res.json({
-      message: 'Login successful',
-      user: { id: user._id, username: user.username, role: user.role },
-    });
-  } catch (err) {
-    res.status(500).json({ error: 'Login failed' });
-  }
-});
+app.use('/api/auth',    authRoutes);
+app.use('/api/games',   gamesRoutes);
+app.use('/api/reviews', reviewsRoutes);
+app.use('/api/users',   usersRoutes);
 
 (async function start() {
   try {
