@@ -35,7 +35,7 @@ export default function SettingsPage() {
 					<p className="settings-kicker">Account center</p>
 					<h1>Settings</h1>
 					<p className="muted">
-						Update your account details. These controls are UI-only for now and are not connected to backend actions yet.
+						
 					</p>
 				</header>
 
