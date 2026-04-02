@@ -3,6 +3,7 @@ const { ObjectId } = require('mongodb');
 const router = express.Router()
 const { getDb } = require('../db/connection')
 const { getSteamAppDetails } = require('../services/steamService')
+const { requireAdmin } = require('../middleware/roles')
 
 router.get('/search', async (req, res) => {
   try {
@@ -35,9 +36,23 @@ router.get('/search', async (req, res) => {
   }
 })
 
-router.post('/create', async (req, res) => {
+router.get('/all', async (req, res) => {
   try {
-    const { title, coverImage, publisher } = req.body;
+    const games = getDb().collection('games');
+    const all = await games
+      .find({})
+      .project({ title: 1, appid: 1, coverImage: 1, createdAt: 1 })
+      .sort({ title: 1 })
+      .toArray();
+    res.json(all);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch games' });
+  }
+});
+
+router.post('/create', requireAdmin, async (req, res) => {
+  try {
+    const { title, coverImage, publisher, appid } = req.body;
     if (!title) return res.status(400).json({ error: 'Title is required' });
     const games = getDb().collection('games');
     const result = await games.insertOne({
@@ -45,6 +60,7 @@ router.post('/create', async (req, res) => {
       normalizedTitle: title.trim().toLowerCase(),
       coverImage: coverImage || '',
       publisher: publisher ? new ObjectId(publisher) : null,
+      ...(appid && { appid: Number(appid) }),
       createdAt: new Date(),
     });
     res.status(201).json({ message: 'Game created', id: result.insertedId });
@@ -53,9 +69,9 @@ router.post('/create', async (req, res) => {
   }
 });
  
-router.put('/update/:id', async (req, res) => {
+router.put('/update/:id', requireAdmin, async (req, res) => {
   try {
-    const { title, coverImage, publisher } = req.body;
+    const { title, coverImage, publisher, appid } = req.body;
     const games = getDb().collection('games');
     const result = await games.updateOne(
       { _id: new ObjectId(req.params.id) },
@@ -63,6 +79,7 @@ router.put('/update/:id', async (req, res) => {
         ...(title      && { title, normalizedTitle: title.trim().toLowerCase() }),
         ...(coverImage && { coverImage }),
         ...(publisher  && { publisher: new ObjectId(publisher) }),
+        ...(appid      && { appid: Number(appid) }),
         updatedAt: new Date(),
       }}
     );
@@ -73,7 +90,7 @@ router.put('/update/:id', async (req, res) => {
   }
 });
  
-router.delete('/delete/:id', async (req, res) => {
+router.delete('/delete/:id', requireAdmin, async (req, res) => {
   try {
     const games = getDb().collection('games');
     const result = await games.deleteOne({ _id: new ObjectId(req.params.id) });
@@ -152,11 +169,7 @@ router.delete('/delete/:id', async (req, res) => {
     });
   } catch (err) {
       console.error('Failed to fetch game details:', err);
-      return res.status(500).json({
-        error: 'Failed to fetch game details',
-        message: err.message,
-        stack: err.stack,
-      });
+      return res.status(500).json({ error: 'Failed to fetch game details' });
   }
 });
 

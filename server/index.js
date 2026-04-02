@@ -9,6 +9,7 @@ const authRoutes    = require('./routes/auth');
 const gamesRoutes   = require('./routes/games');
 const reviewsRoutes = require('./routes/reviews');
 const usersRoutes   = require('./routes/users');
+const { attachCaller } = require('./middleware/roles');
 
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
@@ -18,11 +19,26 @@ const SALT = 10;
 const app = express();
 app.use(express.json());
 app.use(cors());
+app.use(attachCaller);
 
 app.use('/api/auth',    authRoutes);
 app.use('/api/games',   gamesRoutes);
 app.use('/api/reviews', reviewsRoutes);
 app.use('/api/users',   usersRoutes);
+
+app.get('/api/stats', async (req, res) => {
+  try {
+    const db = dbConn.getDb();
+    const [games, users, reviews] = await Promise.all([
+      db.collection('games').countDocuments(),
+      db.collection('users').countDocuments(),
+      db.collection('reviews').countDocuments(),
+    ]);
+    res.json({ games, users, reviews });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch stats' });
+  }
+});
 
 (async function start() {
   try {

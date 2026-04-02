@@ -31,7 +31,7 @@ function ReviewActions({ isOwner, isAdmin, onEdit, onDelete }) {
 export default function ReviewCard({ review, showGame = false, onEdit, onDelete }) {
   const { user } = useAuth()
   const isOwner = user?.id === review.userId
-  const isAdmin = user?.role === 'admin'
+  const isAdmin = user?.role === 'admin' || user?.role === 'superuser'
 
   const formattedDate = new Date(review.createdAt).toLocaleDateString('en-US', {
     year: 'numeric', month: 'short', day: 'numeric',

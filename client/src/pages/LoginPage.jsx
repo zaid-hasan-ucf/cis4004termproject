@@ -85,7 +85,7 @@ export default function LoginPage() {
 
   function handleSuccess(user) {
     login(user)
-    navigate(user.role === 'admin' ? '/admin' : '/home')
+    navigate((user.role === 'admin' || user.role === 'superuser') ? '/admin' : '/home')
   }
 
   function handleBypass() {

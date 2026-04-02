@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
-// import AdminRoute from './components/AdminRoute' — uncomment when AdminDashboardPage is built and if needed.
+import AdminRoute from './components/AdminRoute'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import HomePage from './pages/HomePage'
@@ -31,7 +31,7 @@ export default function App() {
           {/* <Route path="/specs" element={<ProtectedRoute><PCSpecsPage /></ProtectedRoute>} /> */}
 
           {/* Admin only */}
-          {/* <Route path="/admin" element={<AdminRoute><AdminDashboardPage /></AdminRoute>} /> */}
+          <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

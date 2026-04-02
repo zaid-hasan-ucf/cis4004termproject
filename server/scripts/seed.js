@@ -1,4 +1,4 @@
-// NOTE: The entirety of this script was developed with the assistance of Claude AI to
+// NOTE: The most of this script was developed with the assistance of Claude AI to
 // assist with pre-populating the DB with initial data. It can be run with node seeder.js
 const { MongoClient } = require("mongodb");
 const bcrypt = require("bcrypt");
@@ -40,22 +40,55 @@ async function seed() {
     ]);
 
     const { insertedIds } = await roles.insertMany([
-      { name: "superuser" },
-      { name: "administrator" },
-      { name: "user" },
+      { name: "superuser", description: "Full access. Can assign admin roles." },
+      { name: "admin",     description: "Can manage games, users, and reviews. Cannot assign roles." },
+      { name: "user",      description: "Standard user. Can manage their own data." },
     ]);
 
     const superuserRoleId = insertedIds[0];
 
-    const passwordHash = await bcrypt.hash("1234", SALT);
+    const adminHash = await bcrypt.hash("admin", SALT);
     const { insertedId: adminId } = await users.insertOne({
       username: "admin",
-      passwordHash,
+      passwordHash: adminHash,
+      role: "admin",
+      bio: "",
+      avatarUrl: "",
+      createdAt: new Date(),
+    });
+
+    const superuserHash = await bcrypt.hash("superuser", SALT);
+    await users.insertOne({
+      username: "superuser",
+      passwordHash: superuserHash,
       role: "superuser",
       bio: "",
       avatarUrl: "",
       createdAt: new Date(),
     });
+
+    const admin2Hash = await bcrypt.hash("admin2", SALT);
+    await users.insertOne({
+      username: "admin2",
+      passwordHash: admin2Hash,
+      role: "admin",
+      bio: "",
+      avatarUrl: "",
+      createdAt: new Date(),
+    });
+
+    const regularUsers = ["alice", "bob", "charlie", "diana"];
+    for (const name of regularUsers) {
+      const hash = await bcrypt.hash(name, SALT);
+      await users.insertOne({
+        username: name,
+        passwordHash: hash,
+        role: "user",
+        bio: "",
+        avatarUrl: "",
+        createdAt: new Date(),
+      });
+    }
 
     const { insertedId: publisherId } = await publishers.insertOne({
       name: "Imported/Seed Publisher",

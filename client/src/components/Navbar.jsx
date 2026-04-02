@@ -15,7 +15,7 @@ function UserDropdown({ user, onClose, onLogout }) {
     <div className="dropdown" role="menu">
       <Link to={`/profile/${user.username}`} onClick={onClose}>Profile</Link>
       <Link to="/settings" onClick={onClose}>Settings</Link>
-      {user.role === 'admin' && (
+      {(user.role === 'admin' || user.role === 'superuser') && (
         <>
           <div className="dropdown-divider" />
           <Link to="/admin" onClick={onClose}>Admin Dashboard</Link>
