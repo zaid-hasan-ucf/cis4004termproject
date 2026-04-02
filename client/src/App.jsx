@@ -8,6 +8,7 @@ import HomePage from './pages/HomePage'
 import UserProfilePage from './pages/UserProfilePage'
 import GameDetailPage from './pages/GameDetailPage'
 import AdminPage from './pages/adminPage'
+import SettingsPage from './pages/setings'
 import './App.css'
 
 export default function App() {
@@ -22,6 +23,7 @@ export default function App() {
           {/* Protected — any logged-in user */}
           <Route path="/home" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
           <Route path="/profile/:username" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
 
           <Route path="/games/:id" element={<ProtectedRoute><GameDetailPage /></ProtectedRoute>} />
 
