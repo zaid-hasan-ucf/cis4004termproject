@@ -633,10 +633,10 @@ input:focus, textarea:focus, select:focus {
   display: flex;
   gap: 24px;
   margin-bottom: 32px;
-  align-items: flex-start;
+  align-items: center;
 }
 .game-cover { flex-shrink: 0; }
-.game-cover-img { width: 160px; height: 220px; object-fit: cover; border-radius: 10px; display: block; }
+.game-cover-img { width: 231px; height: 87px; object-fit: cover; border-radius: 10px; display: block;}
 .game-cover-placeholder {
   width: 160px;
   height: 220px;
@@ -812,5 +812,73 @@ input:focus, textarea:focus, select:focus {
   .actions { flex-direction: column; }
   .actions > button { min-width: 0; width: 100%; }
   .game-detail-header { flex-direction: column; }
-  .game-cover-img, .game-cover-placeholder { width: 120px; height: 165px; }
+  .game-cover-img, .game-cover-placeholder { width: 231px; height: 87px; }
+}
+
+.category-pill {
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: rgba(96, 165, 250, 0.1);
+  color: var(--primary);
+  border: 1px solid rgba(96, 165, 250, 0.22);
+}
+
+.game-extra-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.game-extra-card {
+  margin-bottom: 16px;
+}
+
+.game-extra-title {
+  margin-bottom: 12px;
+  font-size: 1rem;
+}
+
+.steam-html-content {
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+  line-height: 1.7;
+}
+
+.steam-html-content strong {
+  color: var(--text-primary);
+}
+
+.steam-html-content ul {
+  margin: 10px 0 0 18px;
+  padding: 0;
+}
+
+.steam-html-content li {
+  margin-bottom: 6px;
+}
+
+.steam-html-content a {
+  color: var(--primary);
+}
+
+.steam-html-content img,
+.steam-html-content video {
+  display: none;
+}
+
+.steam-html-content h1,
+.steam-html-content h2,
+.steam-html-content h3,
+.steam-html-content h4 {
+  margin: 0 0 10px;
+  font-size: 1rem;
+}
+
+@media (max-width: 780px) {
+  .game-extra-grid {
+    grid-template-columns: 1fr;
+  }
 }

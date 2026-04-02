@@ -2,6 +2,7 @@ const express = require('express')
 const { ObjectId } = require('mongodb');
 const router = express.Router()
 const { getDb } = require('../db/connection')
+const { getSteamAppDetails } = require('../services/steamService')
 
 router.get('/search', async (req, res) => {
   try {
@@ -80,6 +81,82 @@ router.delete('/delete/:id', async (req, res) => {
     res.json({ message: 'Game deleted' });
   } catch (err) {
     res.status(500).json({ error: 'Failed to delete game' });
+  }
+});
+
+ router.get('/:id/details', async (req, res) => {
+  try {
+    const db = getDb();
+    const games = db.collection('games');
+    const gameId = req.params.id;
+
+    if (!ObjectId.isValid(gameId)) {
+      return res.status(400).json({ error: 'Invalid game id' });
+    }
+
+    const game = await games.findOne({ _id: new ObjectId(gameId) });
+
+    if (!game) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+
+    // Return cached data if it already exists
+    if (game.steamCached) {
+      return res.json({
+        _id: game._id,
+        title: game.title,
+        appid: game.appid,
+        steamCached: game.steamCached,
+      });
+    }
+
+    // Otherwise fetch from Steam using the appid from Mongo
+    const steamData = await getSteamAppDetails(game.appid);
+
+    if (!steamData) {
+      return res.status(404).json({ error: 'Steam details not found' });
+    }
+
+    const steamCached = {
+      detailedDescription: steamData.detailed_description || '',
+      supportedLanguages: steamData.supported_languages || '',
+      headerImage: steamData.header_image || '',
+      capsuleImage: steamData.capsule_image || '',
+      pcRequirementsMinimum: steamData.pc_requirements?.minimum || '',
+      developers: steamData.developers || [],
+      publishers: steamData.publishers || [],
+      platforms: {
+        windows: !!steamData.platforms?.windows,
+        mac: !!steamData.platforms?.mac,
+        linux: !!steamData.platforms?.linux,
+      },
+      categories: (steamData.categories || []).map((c) => c.description),
+      genres: (steamData.genres || []).map((g) => g.description),
+    };
+
+    await games.updateOne(
+      { _id: game._id },
+      {
+        $set: {
+          steamCached,
+          steamCachedAt: new Date(),
+        },
+      }
+    );
+
+    return res.json({
+      _id: game._id,
+      title: game.title,
+      appid: game.appid,
+      steamCached,
+    });
+  } catch (err) {
+      console.error('Failed to fetch game details:', err);
+      return res.status(500).json({
+        error: 'Failed to fetch game details',
+        message: err.message,
+        stack: err.stack,
+      });
   }
 });
 

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
 import Navbar from '../components/Navbar'
@@ -6,29 +6,20 @@ import Button from '../components/Button'
 import ReviewCard from '../components/ReviewCard'
 import ReviewForm from '../components/ReviewForm'
 
-// TODO: replace with API calls once backend is wired
-const MOCK_GAME = {
-  _id: '1',
-  title: 'Elden Ring',
-  coverUrl: null,
-  summary: 'A fantasy action-RPG set within a world created by Hidetaka Miyazaki and George R. R. Martin. Unravel the mysteries of the Elden Ring and become the Elden Lord.',
-  releaseDate: '2022-02-25',
-  developer: 'FromSoftware',
-  publisher: 'Bandai Namco',
-  genres: ['Action RPG', 'Open World', 'Souls-like'],
-  platforms: ['PC', 'PlayStation 5', 'PlayStation 4', 'Xbox Series X|S', 'Xbox One'],
-  avgRating: 9.2,
-  reviewCount: 142,
-}
-
 const MOCK_REVIEWS = [
   {
-    _id: 'r1', userId: 'u1', username: 'player1', rating: 10,
+    _id: 'r1',
+    userId: 'u1',
+    username: 'player1',
+    rating: 10,
     body: 'One of the greatest games ever made. The open world design is absolutely masterful — every corner hides something worth discovering.',
     createdAt: '2026-02-15',
   },
   {
-    _id: 'r2', userId: 'u2', username: 'gamer42', rating: 8,
+    _id: 'r2',
+    userId: 'u2',
+    username: 'gamer42',
+    rating: 8,
     body: 'Amazing game but the difficulty might put off some players. Once it clicks though, nothing else compares.',
     createdAt: '2026-01-20',
   },
@@ -53,8 +44,29 @@ function GenrePill({ name }) {
   return <span className="genre-pill">{name}</span>
 }
 
+function CategoryPill({ name }) {
+  return <span className="category-pill">{name}</span>
+}
+
+function formatReleaseYear(releaseDate) {
+  if (!releaseDate) return '—'
+  const parsed = new Date(releaseDate)
+  if (Number.isNaN(parsed.getTime())) return releaseDate
+  return parsed.getFullYear()
+}
+
+function mapPlatforms(platforms) {
+  if (!platforms) return []
+  const result = []
+  if (platforms.windows) result.push('Windows')
+  if (platforms.mac) result.push('Mac')
+  if (platforms.linux) result.push('Linux')
+  return result
+}
+
 function GameHeader({ game }) {
-  const year = new Date(game.releaseDate).getFullYear()
+  const year = formatReleaseYear(game.releaseDate)
+
   return (
     <div className="game-detail-header card">
       <GameCover coverUrl={game.coverUrl} title={game.title} />
@@ -63,12 +75,15 @@ function GameHeader({ game }) {
         <p className="game-developer muted small">
           {game.developer} · {game.publisher} · {year}
         </p>
+
         <div className="pill-row">
           {game.genres.map((g) => <GenrePill key={g} name={g} />)}
         </div>
+
         <div className="pill-row">
           {game.platforms.map((p) => <PlatformPill key={p} name={p} />)}
         </div>
+
         <div className="game-score-row">
           <div className="avg-score-display">
             <span className="avg-score-value">{game.avgRating}</span>
@@ -76,9 +91,71 @@ function GameHeader({ game }) {
           </div>
           <Button>+ Add to Library</Button>
         </div>
+
         <p className="game-summary">{game.summary}</p>
       </div>
     </div>
+  )
+}
+
+function GameDetailsSection({ game }) {
+  return (
+    <section className="home-section">
+      <div className="section-header">
+        <h2 className="section-heading">Game Details</h2>
+      </div>
+
+      <div className="game-extra-grid">
+        <div className="card game-extra-card">
+          <h3 className="game-extra-title">Categories</h3>
+          <div className="pill-row">
+            {game.categories.length > 0 ? (
+              game.categories.map((category) => (
+                <CategoryPill key={category} name={category} />
+              ))
+            ) : (
+              <p className="muted">No category data available.</p>
+            )}
+          </div>
+        </div>
+
+        <div className="card game-extra-card">
+          <h3 className="game-extra-title">Supported Languages</h3>
+          {game.supportedLanguages ? (
+            <div
+              className="steam-html-content"
+              dangerouslySetInnerHTML={{ __html: game.supportedLanguages }}
+            />
+          ) : (
+            <p className="muted">No language data available.</p>
+          )}
+        </div>
+      </div>
+
+      <div className="card game-extra-card">
+        <h3 className="game-extra-title">PC Requirements (Minimum)</h3>
+        {game.pcRequirementsMinimum ? (
+          <div
+            className="steam-html-content"
+            dangerouslySetInnerHTML={{ __html: game.pcRequirementsMinimum }}
+          />
+        ) : (
+          <p className="muted">No PC requirement data available.</p>
+        )}
+      </div>
+
+      <div className="card game-extra-card">
+        <h3 className="game-extra-title">About This Game</h3>
+        {game.detailedDescription ? (
+          <div
+            className="steam-html-content"
+            dangerouslySetInnerHTML={{ __html: game.detailedDescription }}
+          />
+        ) : (
+          <p className="muted">No detailed description available.</p>
+        )}
+      </div>
+    </section>
   )
 }
 
@@ -150,12 +227,58 @@ function ReviewsSection({ reviews, onReviewSubmit, onDelete }) {
 export default function GameDetailPage() {
   const { id } = useParams()
   const { user } = useAuth()
-  // TODO: fetch game by id from API using `id`
-  const game = MOCK_GAME
   const [reviews, setReviews] = useState(MOCK_REVIEWS)
+  const [game, setGame] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    async function fetchGame() {
+      try {
+        setLoading(true)
+        setError('')
+
+        const response = await fetch(`http://localhost:5000/api/games/${id}/details`)
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => null)
+          throw new Error(errData?.error || 'Failed to fetch game details')
+        }
+
+        const data = await response.json()
+        const cached = data.steamCached || {}
+
+        setGame({
+          _id: data._id,
+          title: data.title,
+          coverUrl: cached.capsuleImage || cached.headerImage || null,
+          summary: cached.detailedDescription
+            ? ''
+            : 'No summary available.',
+          releaseDate: '',
+          developer: cached.developers?.join(', ') || 'Unknown Developer',
+          publisher: cached.publishers?.join(', ') || 'Unknown Publisher',
+          genres: cached.genres || [],
+          categories: cached.categories || [],
+          platforms: mapPlatforms(cached.platforms),
+          supportedLanguages: cached.supportedLanguages || '',
+          pcRequirementsMinimum: cached.pcRequirementsMinimum || '',
+          detailedDescription: cached.detailedDescription || '',
+          avgRating: 9.2,
+          reviewCount: reviews.length,
+        })
+      } catch (err) {
+        console.error(err)
+        setError(err.message || 'Failed to load game.')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchGame()
+  }, [id, reviews.length])
 
   function handleReviewSubmit({ rating, body, editing }) {
-    // TODO: call POST or PUT /api/reviews
     if (editing) {
       setReviews((prev) =>
         prev.map((r) => r._id === editing._id ? { ...r, rating, body } : r)
@@ -174,8 +297,33 @@ export default function GameDetailPage() {
   }
 
   function handleDeleteReview(reviewId) {
-    // TODO: call DELETE /api/reviews/:id
     setReviews((prev) => prev.filter((r) => r._id !== reviewId))
+  }
+
+  if (loading) {
+    return (
+      <div>
+        <Navbar />
+        <div className="container" style={{ paddingTop: 32, paddingBottom: 48 }}>
+          <div className="card">
+            <p className="muted">Loading game details...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !game) {
+    return (
+      <div>
+        <Navbar />
+        <div className="container" style={{ paddingTop: 32, paddingBottom: 48 }}>
+          <div className="card">
+            <p className="error">{error || 'Game not found.'}</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -183,6 +331,7 @@ export default function GameDetailPage() {
       <Navbar />
       <div className="container" style={{ paddingTop: 32, paddingBottom: 48 }}>
         <GameHeader game={game} />
+        <GameDetailsSection game={game} />
         <ReviewsSection
           reviews={reviews}
           onReviewSubmit={handleReviewSubmit}
