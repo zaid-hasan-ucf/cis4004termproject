@@ -19,7 +19,7 @@ const DB_NAME     = process.env.DB_NAME     || 'mygamelistdb';
 
 const app = express();
 app.use(express.json());
-app.use(cors());
+app.use(cors({ origin: true, credentials: false }));
 app.use('/uploads', express.static(path.join(__dirname, '../data/uploads')));
 app.use(attachCaller);
 

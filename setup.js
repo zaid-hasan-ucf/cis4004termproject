@@ -8,7 +8,8 @@ const fs   = require('fs');
 const path = require('path');
 
 const ROOT = __dirname;
-const SEED = process.argv.includes('--seed');
+const SEED        = process.argv.includes('--seed');
+const CLEAR_PORTS = process.argv.includes('--clear-ports');
 
 // ── Logging helpers ───────────────────────────────────────────────────────────
 
@@ -55,6 +56,35 @@ function isPortOccupied(port, host = '127.0.0.1') {
   });
 }
 
+function killPort(port) {
+  try {
+    if (process.platform === 'win32') {
+      const out = execSync('netstat -ano', { encoding: 'utf8', stdio: 'pipe' });
+      const pids = new Set();
+      for (const line of out.split('\n')) {
+        if (new RegExp(`:${port}\\s`).test(line) && /LISTENING/i.test(line)) {
+          const parts = line.trim().split(/\s+/);
+          const pid = parts[parts.length - 1];
+          if (/^\d+$/.test(pid) && pid !== '0') pids.add(pid);
+        }
+      }
+      if (pids.size === 0) return false;
+      for (const pid of pids) {
+        try { execSync(`taskkill /PID ${pid} /F`, { stdio: 'pipe' }); } catch { /* protected process */ }
+      }
+      return pids.size > 0;
+    } else {
+      const out = execSync(`lsof -ti :${port}`, { encoding: 'utf8', stdio: 'pipe' }).trim();
+      if (!out) return false;
+      const pids = out.split('\n').filter(Boolean);
+      execSync(`kill -9 ${pids.join(' ')}`, { stdio: 'pipe' });
+      return true;
+    }
+  } catch {
+    return false;
+  }
+}
+
 function isServiceUp(port, host = '127.0.0.1', timeoutMs = 1500) {
   return new Promise(resolve => {
     const sock  = net.createConnection({ port, host });
@@ -62,12 +92,6 @@ function isServiceUp(port, host = '127.0.0.1', timeoutMs = 1500) {
     sock.once('connect', () => { clearTimeout(timer); sock.destroy(); resolve(true); });
     sock.once('error',   () => { clearTimeout(timer); resolve(false); });
   });
-}
-
-async function findFreePort(start) {
-  let p = start;
-  while (await isPortOccupied(p)) p++;
-  return p;
 }
 
 async function waitForService(port, host, timeoutMs = 12000) {
@@ -81,50 +105,29 @@ async function waitForService(port, host, timeoutMs = 12000) {
 
 // ── Port conflict resolution ──────────────────────────────────────────────────
 
-async function resolvePorts(envPath, clientEnvPath, mongoCfgPath) {
+async function clearPort(port, label) {
+  if (!(await isPortOccupied(port))) { ok(`Port ${port}  ${label}`); return; }
+  warn(`Port ${port} (${label}) is in use — killing process…`);
+  killPort(port);
+  await new Promise(r => setTimeout(r, 600));
+  if (!(await isPortOccupied(port))) { ok(`Port ${port} freed`); return; }
+  warn(`Port ${port} still held — may be a protected system service. ${label} will try to start anyway.`);
+}
+
+async function resolvePorts(envPath) {
   const env = parseEnvFile(envPath);
 
-  // ── MongoDB port ──────────────────────────────────────────────────
-  const mongoUri  = env.MONGODB_URI || 'mongodb://localhost:27017';
-  const mongoHost = (mongoUri.match(/\/\/([^:/]+)/) || [])[1] || '127.0.0.1';
-  let   mongoPort = parseInt((mongoUri.match(/:(\d+)(\/|$)/) || [])[1] || '27017', 10);
+  // Normalise 'localhost' → '127.0.0.1' (avoids IPv6 ambiguity on macOS)
+  const rawUri = (env.MONGODB_URI || 'mongodb://localhost:27017').replace('localhost', '127.0.0.1');
+  if (rawUri !== env.MONGODB_URI) updateEnvKey(envPath, 'MONGODB_URI', rawUri);
 
-  if (await isPortOccupied(mongoPort)) {
-    const alt = await findFreePort(mongoPort + 1);
-    warn(`Port ${mongoPort} (MongoDB) is in use — switching to ${alt}`);
+  const mongoHost = (rawUri.match(/\/\/([^:/]+)/) || [])[1] || '127.0.0.1';
+  const mongoPort = parseInt((rawUri.match(/:(\d+)(\/|$)/) || [])[1] || '27017', 10);
+  const serverPort = parseInt(env.PORT || '5000', 10);
 
-    const cfg = fs.readFileSync(mongoCfgPath, 'utf8');
-    fs.writeFileSync(mongoCfgPath, cfg.replace(/^(\s*port:\s*)\d+/m, `$1${alt}`));
-
-    const newUri = mongoUri.replace(/:(\d+)(\/|$)/, `:${alt}$2`);
-    updateEnvKey(envPath, 'MONGODB_URI', newUri);
-
-    mongoPort = alt;
-    ok(`MongoDB → port ${mongoPort}`);
-  } else {
-    ok(`Port ${mongoPort}  MongoDB`);
-  }
-
-  // ── Server port ───────────────────────────────────────────────────
-  let serverPort = parseInt(env.PORT || '5000', 10);
-
-  if (await isPortOccupied(serverPort)) {
-    const alt = await findFreePort(serverPort + 1);
-    warn(`Port ${serverPort} (API server) is in use — switching to ${alt}`);
-    updateEnvKey(envPath, 'PORT', String(alt));
-    updateEnvKey(clientEnvPath, 'VITE_API_URL', `http://localhost:${alt}/api`);
-    serverPort = alt;
-    ok(`API server → port ${serverPort}`);
-  } else {
-    ok(`Port ${serverPort}  API server`);
-  }
-
-  const vitePort = 5173;
-  if (await isPortOccupied(vitePort)) {
-    warn(`Port ${vitePort} (Vite) is in use — Vite will auto-select the next free port at startup`);
-  } else {
-    ok(`Port ${vitePort}  Vite (client)`);
-  }
+  await clearPort(mongoPort,  'MongoDB');
+  await clearPort(serverPort, 'API server');
+  await clearPort(5173,       'Vite');
 
   return { mongoPort, mongoHost, serverPort };
 }
@@ -153,6 +156,17 @@ function spawnMongod(cfgPath) {
 
 async function main() {
 
+  if (CLEAR_PORTS) {
+    const envPath = path.join(ROOT, '.env');
+    const env     = parseEnvFile(envPath);
+    const mongoPort  = parseInt((env.MONGODB_URI || '').match(/:(\d+)/)?.[1] || '27017', 10);
+    const serverPort = parseInt(env.PORT || '5000', 10);
+    log('Clearing dev ports…');
+    await clearPort(mongoPort,  'MongoDB');
+    await clearPort(serverPort, 'API server');
+    await clearPort(5173,       'Vite');
+    return;
+  }
 
   const nodeMajor = parseInt(process.versions.node.split('.')[0], 10);
   if (nodeMajor < 18) {
@@ -162,10 +176,9 @@ async function main() {
   }
   ok(`Node.js ${process.versions.node}`);
 
-  const envPath       = path.join(ROOT, '.env');
-  const envExample    = path.join(ROOT, '.env.example');
-  const clientEnvPath = path.join(ROOT, 'client', '.env');
-  const mongoCfgPath  = path.join(ROOT, 'mongod.cfg');
+  const envPath      = path.join(ROOT, '.env');
+  const envExample   = path.join(ROOT, '.env.example');
+  const mongoCfgPath = path.join(ROOT, 'mongod.cfg');
 
   if (!fs.existsSync(envPath)) {
     if (fs.existsSync(envExample)) {
@@ -191,7 +204,7 @@ async function main() {
 
   console.log('');
   log('Checking ports…');
-  const { mongoPort, mongoHost, serverPort } = await resolvePorts(envPath, clientEnvPath, mongoCfgPath);
+  const { mongoPort, mongoHost, serverPort } = await resolvePorts(envPath);
 
   console.log('');
   log('Installing dependencies (root + server + client)…');
