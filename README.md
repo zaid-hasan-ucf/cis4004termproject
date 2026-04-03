@@ -64,14 +64,14 @@ All config lives in `.env` at the repo root (created automatically by setup):
 |------------------|--------------------------------|------------------------------|
 | `MONGODB_URI`    | `mongodb://localhost:27017`    | MongoDB connection string    |
 | `DB_NAME`        | `mygamelistdb`                 | Database name                |
-| `PORT`           | `5000`                         | API server port              |
-| `SERVER_ORIGIN`  | `http://localhost:5000`        | Used to build upload URLs    |
+| `PORT`           | `5555`                         | API server port              |
+| `SERVER_ORIGIN`  | `http://localhost:5555`        | Used to build upload URLs    |
 
 The client reads `client/.env`:
 
 | Variable       | Default                        | Description        |
 |----------------|--------------------------------|--------------------|
-| `VITE_API_URL` | `http://localhost:5000/api`    | API base URL       |
+| `VITE_API_URL` | `http://localhost:5555/api`    | API base URL       |
 
 > `npm run setup` automatically updates both files if a port conflict is detected.
 
@@ -89,3 +89,10 @@ The client reads `client/.env`:
 | `npm run dev:all`    | Start MongoDB + API server + Vite client              |
 
 
+
+
+WARNING WARNING WARNING
+
+IF YOU ARE ON A MAC, TURN OFF AIRPLAY TEMPORARILY OTHERWISE THE BACKEND DOES NOT WORK.
+
+WARNING WARNING WARNING
