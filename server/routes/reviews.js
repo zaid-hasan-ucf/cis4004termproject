@@ -4,7 +4,7 @@ const dbConn = require('../db/connection');
 const router = express.Router();
 const { requireOwnerOrAdmin } = require('../middleware/roles')
 
-router.get('/all', async (req, res) => {
+router.get('/all', async (_req, res) => {
   try {
     const db = dbConn.getDb();
     const all = await db.collection('reviews').aggregate([
@@ -23,12 +23,59 @@ router.get('/all', async (req, res) => {
   }
 });
 
+router.get('/user/:userId', async (req, res) => {
+  try {
+    const db = dbConn.getDb();
+    const { userId } = req.params;
+    if (!ObjectId.isValid(userId)) return res.status(400).json({ error: 'Invalid user id' });
+    const reviews = await db.collection('reviews').aggregate([
+      { $match: { user: new ObjectId(userId) } },
+      { $sort: { createdAt: -1 } },
+      { $lookup: { from: 'users', localField: 'user', foreignField: '_id', as: 'userDoc' } },
+      { $lookup: { from: 'games', localField: 'game', foreignField: '_id', as: 'gameDoc' } },
+      { $addFields: {
+        userId:    { $toString: '$user' },
+        username:  { $ifNull: [{ $arrayElemAt: ['$userDoc.username', 0] }, 'Unknown'] },
+        gameTitle: { $ifNull: [{ $arrayElemAt: ['$gameDoc.title', 0] }, 'Unknown'] },
+      }},
+      { $project: { userDoc: 0, gameDoc: 0 } },
+    ]).toArray();
+    res.json(reviews);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch user reviews' });
+  }
+});
+
+router.get('/game/:gameId', async (req, res) => {
+  try {
+    const db = dbConn.getDb();
+    const { gameId } = req.params;
+    if (!ObjectId.isValid(gameId)) return res.status(400).json({ error: 'Invalid game id' });
+    const reviews = await db.collection('reviews').aggregate([
+      { $match: { game: new ObjectId(gameId) } },
+      { $sort: { createdAt: -1 } },
+      { $lookup: { from: 'users', localField: 'user', foreignField: '_id', as: 'userDoc' } },
+      { $addFields: {
+        userId:   { $toString: '$user' },
+        username: { $ifNull: [{ $arrayElemAt: ['$userDoc.username', 0] }, 'Unknown'] },
+      }},
+      { $project: { userDoc: 0 } },
+    ]).toArray();
+    res.json(reviews);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch game reviews' });
+  }
+});
+
 router.post('/create', async (req, res) => {
+  if (!req.callerId) return res.status(401).json({ error: 'Authentication required' });
   try {
     const { userId, gameId, rating, body } = req.body;
     if (!userId || !gameId || !rating || !body) {
       return res.status(400).json({ error: 'userId, gameId, rating, and body are required' });
     }
+    if (req.callerId !== userId) return res.status(403).json({ error: 'Cannot post a review as another user' });
+    if (!ObjectId.isValid(gameId)) return res.status(400).json({ error: 'Invalid game id' });
     if (rating < 1 || rating > 10) {
       return res.status(400).json({ error: 'Rating must be between 1 and 10' });
     }
@@ -52,7 +99,6 @@ router.post('/create', async (req, res) => {
 });
 
 router.put('/update/:id', async (req, res, next) => {
-  // fetch the review first so we can check ownership
   try {
     const reviews = dbConn.getDb().collection('reviews');
     const review = await reviews.findOne({ _id: new ObjectId(req.params.id) });

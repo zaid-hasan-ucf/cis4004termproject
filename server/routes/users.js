@@ -47,9 +47,9 @@ router.put('/update/:id', async (req, res, next) => {
   } catch { return res.status(500).json({ error: 'Failed to fetch user' }); }
 }, requireOwnerOrAdmin(req => req._targetUserId), async (req, res) => {
   try {
-    const { username, password, role, bio, avatarUrl } = req.body;
-    // admins cannot edit accounts with equal or higher rank than themselves
-    if (req.callerRole === 'admin' && rank(req._targetRole) >= rank('admin')) {
+    const { username, password, role, bio, avatarUrl, platforms, pcSpecs } = req.body;
+    // admins cannot edit accounts with equal or higher rank than themselves (but can edit their own)
+    if (req.callerRole === 'admin' && req.callerId !== req._targetUserId && rank(req._targetRole) >= rank('admin')) {
       return res.status(403).json({ error: 'Admins cannot edit other admin or superuser accounts' });
     }
     // only superuser can change roles, and only to valid values
@@ -73,6 +73,8 @@ router.put('/update/:id', async (req, res, next) => {
       ...(role      && { role }),
       ...(bio       !== undefined && { bio }),
       ...(avatarUrl !== undefined && { avatarUrl }),
+      ...(platforms !== undefined && { platforms }),
+      ...(pcSpecs   !== undefined && { pcSpecs }),
       updatedAt: new Date(),
     };
     if (password) update.passwordHash = await bcrypt.hash(password, SALT);
@@ -97,8 +99,8 @@ router.delete('/delete/:id', async (req, res, next) => {
     next();
   } catch { return res.status(500).json({ error: 'Failed to fetch user' }); }
 }, requireOwnerOrAdmin(req => req._targetUserId), async (req, res) => {
-  // admins cannot delete accounts with equal or higher rank
-  if (req.callerRole === 'admin' && rank(req._targetRole) >= rank('admin')) {
+  // admins cannot delete accounts with equal or higher rank (but can delete their own)
+  if (req.callerRole === 'admin' && req.callerId !== req._targetUserId && rank(req._targetRole) >= rank('admin')) {
     return res.status(403).json({ error: 'Admins cannot delete other admin or superuser accounts' });
   }
   try {

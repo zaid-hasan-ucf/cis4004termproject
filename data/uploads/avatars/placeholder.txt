@@ -1,0 +1,2 @@
+This directory holds user-uploaded profile pictures.
+The contents are gitignored — only this file is tracked.

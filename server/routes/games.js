@@ -18,18 +18,13 @@ router.get('/search', async (req, res) => {
 
     const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
-    const startsWithResults = await games
-      .find({
-        normalizedTitle: { $regex: `^${escaped}` }
-      })
-      .project({
-        title: 1,
-        appid: 1
-      })
+    const results = await games
+      .find({ normalizedTitle: { $regex: escaped } })
+      .project({ title: 1, appid: 1 })
       .limit(8)
       .toArray()
 
-    return res.json(startsWithResults)
+    return res.json(results)
   } catch (err) {
     console.error('Game search failed:', err)
     return res.status(500).json({ error: 'Failed to search games' })

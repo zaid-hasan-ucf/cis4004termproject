@@ -1,12 +1,17 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
+import { DEFAULT_AVATAR } from '../constants'
 
-function UserAvatar({ username }) {
+function UserAvatar({ username, avatarUrl }) {
   return (
-    <div className="avatar-placeholder" aria-hidden="true">
-      {username[0].toUpperCase()}
-    </div>
+    <img
+      src={avatarUrl || DEFAULT_AVATAR}
+      alt={username}
+      className="avatar-placeholder"
+      style={{ objectFit: 'cover' }}
+      onError={e => { e.currentTarget.onerror = null; e.currentTarget.src = DEFAULT_AVATAR }}
+    />
   )
 }
 
@@ -57,7 +62,7 @@ function UserMenu({ user }) {
         aria-expanded={open}
         aria-haspopup="menu"
       >
-        <UserAvatar username={user.username} />
+        <UserAvatar username={user.username} avatarUrl={user.avatarUrl} />
         <span>{user.username}</span>
         <span className="chevron">{open ? '▴' : '▾'}</span>
       </button>

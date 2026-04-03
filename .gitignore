@@ -25,7 +25,8 @@ dist-ssr
 *.sw?
 bak/
 
-# Ignore data/db contents but allow placeholder.txt
-# Ignore everything under data/db
+# data/ — ignore generated/runtime content, keep placeholders and default image
 data/db/*
 !data/db/placeholder.txt
+data/uploads/avatars/*
+!data/uploads/avatars/placeholder.txt

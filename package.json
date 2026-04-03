@@ -2,12 +2,12 @@
   "name": "cis4004termproject",
   "workspaces": ["server","client"],
   "scripts": {
-    "start:server": "npm --prefix server run start",
-    "dev:server": "npm --prefix server run dev",
-    "start:client": "npm --prefix client run preview",
-    "dev:client": "npm --prefix client run dev",
+    "setup": "node setup.js",
+    "setup:fresh": "node setup.js --seed",
+    "seed": "npm --prefix server run seed",
     "db": "mongod --config mongod.cfg",
-    "dev": "concurrently \"npm --prefix server run dev\" \"npm --prefix client run dev\""
+    "dev": "concurrently \"npm --prefix server run dev\" \"npm --prefix client run dev\"",
+    "dev:all": "concurrently \"npm run db\" \"npm --prefix server run dev\" \"npm --prefix client run dev\""
   },
   "devDependencies": {
     "concurrently": "^8.2.0"

@@ -1,55 +1,21 @@
-import { useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useParams, Link } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
 import Navbar from '../components/Navbar'
 import Button from '../components/Button'
 import ReviewCard from '../components/ReviewCard'
+import { apiFetch } from '../api/apiFetch'
+import { ALL_PLATFORMS, DEFAULT_AVATAR } from '../constants'
 
-// TODO: replace with API calls once backend is wired
-const MOCK_USER = {
-  username: 'player1',
-  bio: 'Just a gamer who loves open-world RPGs and indie gems.',
-  joinedAt: '2025-11-01',
-  platforms: ['PC', 'Steam Deck', 'PlayStation 5', 'Nintendo Switch'],
-  pcSpecs: {
-    cpu: 'AMD Ryzen 7 5800X',
-    gpu: 'NVIDIA RTX 3080',
-    ram: '32 GB DDR4',
-    storage: '2 TB NVMe SSD',
-  },
+const EMPTY_LIBRARY = { playing: [], completed: [], dropped: [], planned: [] }
+
+function groupLibrary(entries) {
+  const grouped = { playing: [], completed: [], dropped: [], planned: [] }
+  for (const e of entries) {
+    if (grouped[e.status]) grouped[e.status].push(e)
+  }
+  return grouped
 }
-
-const MOCK_LIBRARY = {
-  playing: [
-    { _id: 'l1', gameId: 'g1', gameTitle: 'Elden Ring', coverUrl: null, score: 10, hours: 120, platform: 'PC' },
-    { _id: 'l2', gameId: 'g2', gameTitle: 'Hades II', coverUrl: null, score: null, hours: 22, platform: 'Steam Deck' },
-  ],
-  completed: [
-    { _id: 'l3', gameId: 'g3', gameTitle: 'Hollow Knight', coverUrl: null, score: 9, hours: 45, platform: 'PC' },
-    { _id: 'l4', gameId: 'g4', gameTitle: 'God of War', coverUrl: null, score: 10, hours: 30, platform: 'PlayStation 5' },
-    { _id: 'l5', gameId: 'g5', gameTitle: 'Celeste', coverUrl: null, score: 8, hours: 12, platform: 'Nintendo Switch' },
-  ],
-  dropped: [
-    { _id: 'l6', gameId: 'g6', gameTitle: 'Outriders', coverUrl: null, score: 4, hours: 8, platform: 'PC' },
-  ],
-  planned: [
-    { _id: 'l7', gameId: 'g7', gameTitle: 'Baldur\'s Gate 3', coverUrl: null, score: null, hours: 0, platform: 'PC' },
-    { _id: 'l8', gameId: 'g8', gameTitle: 'Lies of P', coverUrl: null, score: null, hours: 0, platform: 'PlayStation 5' },
-  ],
-}
-
-const MOCK_REVIEWS = [
-  {
-    _id: 'r1', userId: 'u1', username: 'player1', gameTitle: 'Elden Ring', rating: 10,
-    body: 'One of the greatest games ever made. The open world design is absolutely masterful.',
-    createdAt: '2026-02-15',
-  },
-  {
-    _id: 'r2', userId: 'u1', username: 'player1', gameTitle: 'Hollow Knight', rating: 9,
-    body: 'Gorgeous hand-drawn art, tight controls, and a hauntingly beautiful world.',
-    createdAt: '2026-01-10',
-  },
-]
 
 const TABS = [
   { key: 'playing',   label: 'Playing' },
@@ -58,10 +24,6 @@ const TABS = [
   { key: 'planned',   label: 'Plan to Play' },
 ]
 
-const ALL_PLATFORMS = [
-  'PC', 'Steam Deck', 'PlayStation 5', 'PlayStation 4',
-  'Xbox Series X|S', 'Xbox One', 'Nintendo Switch',
-]
 
 function getRatingClass(rating) {
   if (rating >= 8) return 'rating-great'
@@ -71,17 +33,23 @@ function getRatingClass(rating) {
 }
 
 function ProfileHeader({ profileUser, isOwn }) {
-  const year = new Date(profileUser.joinedAt).getFullYear()
+  const year = new Date(profileUser.createdAt).getFullYear()
   return (
     <div className="card profile-header">
-      <div className="avatar-large">{profileUser.username[0].toUpperCase()}</div>
+      <img
+        src={profileUser.avatarUrl || DEFAULT_AVATAR}
+        alt={profileUser.username}
+        className="avatar-large"
+        style={{ objectFit: 'cover' }}
+        onError={e => { e.currentTarget.onerror = null; e.currentTarget.src = DEFAULT_AVATAR }}
+      />
       <div className="profile-info">
         <h1 className="profile-username">{profileUser.username}</h1>
         <p className="muted small">Joined {year}</p>
         <p className="profile-bio">{profileUser.bio || 'No bio yet.'}</p>
       </div>
       {isOwn && (
-        <Button variant="ghost" className="profile-edit-btn">Edit Profile</Button>
+        <Link to="/settings" className="ghost-btn profile-edit-btn">Edit Profile</Link>
       )}
     </div>
   )
@@ -111,7 +79,7 @@ function StatsBar({ library }) {
   )
 }
 
-function LibraryRow({ entry, isOwn }) {
+function LibraryRow({ entry, isOwn, onRemove }) {
   return (
     <tr className="library-row">
       <td className="library-cover-cell">
@@ -129,14 +97,14 @@ function LibraryRow({ entry, isOwn }) {
       {isOwn && (
         <td className="library-actions">
           <button className="row-action-btn ghost-btn">Edit</button>
-          <button className="row-action-btn ghost-btn danger-btn">Remove</button>
+          <button className="row-action-btn ghost-btn danger-btn" onClick={() => onRemove(entry._id)}>Remove</button>
         </td>
       )}
     </tr>
   )
 }
 
-function LibrarySection({ library, isOwn }) {
+function LibrarySection({ library, isOwn, onRemove }) {
   const [activeTab, setActiveTab] = useState('playing')
   const entries = library[activeTab] ?? []
 
@@ -179,7 +147,7 @@ function LibrarySection({ library, isOwn }) {
             </thead>
             <tbody>
               {entries.map((entry) => (
-                <LibraryRow key={entry._id} entry={entry} isOwn={isOwn} />
+                <LibraryRow key={entry._id} entry={entry} isOwn={isOwn} onRemove={onRemove} />
               ))}
             </tbody>
           </table>
@@ -214,47 +182,47 @@ function PlatformPill({ name, owned }) {
 }
 
 function GamingSetup({ profileUser, isOwn }) {
-  const ownedSet = new Set(profileUser.platforms)
+  const ownedSet = new Set(profileUser.platforms || [])
   const hasPC = ownedSet.has('PC')
+  const specs = profileUser.pcSpecs || {}
 
   return (
     <section className="home-section">
       <div className="section-header">
         <h2 className="section-heading">Gaming Setup</h2>
-        {isOwn && <Button variant="ghost">Edit Setup</Button>}
+        {isOwn && (
+          <Link to="/settings" className="ghost-btn" style={{ fontSize: '0.875rem', padding: '0.4rem 0.9rem' }}>
+            Edit Setup
+          </Link>
+        )}
       </div>
       <div className="card">
-        <div className="platform-pills-row">
-          {ALL_PLATFORMS.map((p) => (
-            <PlatformPill key={p} name={p} owned={ownedSet.has(p)} />
-          ))}
-        </div>
+        {ownedSet.size === 0 ? (
+          <p className="muted">{isOwn ? 'Add your gaming setup in Settings.' : 'No setup info yet.'}</p>
+        ) : (
+          <>
+            <div className="platform-pills-row">
+              {ALL_PLATFORMS.map((p) => (
+                <PlatformPill key={p} name={p} owned={ownedSet.has(p)} />
+              ))}
+            </div>
 
-        {hasPC && profileUser.pcSpecs && (
-          <div className="specs-grid">
-            <div className="spec-item">
-              <span className="spec-label">CPU</span>
-              <span className="spec-value">{profileUser.pcSpecs.cpu}</span>
-            </div>
-            <div className="spec-item">
-              <span className="spec-label">GPU</span>
-              <span className="spec-value">{profileUser.pcSpecs.gpu}</span>
-            </div>
-            <div className="spec-item">
-              <span className="spec-label">RAM</span>
-              <span className="spec-value">{profileUser.pcSpecs.ram}</span>
-            </div>
-            <div className="spec-item">
-              <span className="spec-label">Storage</span>
-              <span className="spec-value">{profileUser.pcSpecs.storage}</span>
-            </div>
-          </div>
-        )}
-
-        {hasPC && !profileUser.pcSpecs && isOwn && (
-          <p className="muted small" style={{ marginTop: 12 }}>
-            Add your PC specs to show them off.
-          </p>
+            {hasPC && (specs.cpu || specs.gpu || specs.ram || specs.storage) && (
+              <div className="specs-grid">
+                {[
+                  { label: 'CPU',     value: specs.cpu },
+                  { label: 'GPU',     value: specs.gpu },
+                  { label: 'RAM',     value: specs.ram },
+                  { label: 'Storage', value: specs.storage },
+                ].filter(s => s.value).map(({ label, value }) => (
+                  <div key={label} className="spec-item">
+                    <span className="spec-label">{label}</span>
+                    <span className="spec-value">{value}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
     </section>
@@ -266,10 +234,64 @@ export default function UserProfilePage() {
   const { user } = useAuth()
   const isOwn = user?.username === username
 
-  // TODO: fetch profile, library, and reviews by username from API
-  const profileUser = { ...MOCK_USER, username }
-  const library = MOCK_LIBRARY
-  const reviews = MOCK_REVIEWS
+  const [profileUser, setProfileUser] = useState(null)
+  const [reviews, setReviews]         = useState([])
+  const [library, setLibrary]         = useState(EMPTY_LIBRARY)
+  const [loading, setLoading]         = useState(true)
+  const [error, setError]             = useState('')
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const r = await apiFetch(`/users/find/${username}`)
+        if (!r.ok) { setError('User not found.'); setLoading(false); return }
+        const userData = await r.json()
+        setProfileUser(userData)
+
+        const [rr, lr] = await Promise.all([
+          apiFetch(`/reviews/user/${userData._id}`),
+          apiFetch(`/library/user/${userData._id}`),
+        ])
+        if (rr.ok) setReviews(await rr.json())
+        if (lr.ok) setLibrary(groupLibrary(await lr.json()))
+      } catch {
+        setError('Failed to load profile.')
+      }
+      setLoading(false)
+    }
+    load()
+  }, [username])
+
+  async function handleRemoveFromLibrary(entryId) {
+    const res = await apiFetch(`/library/remove/${entryId}`, { method: 'DELETE' })
+    if (res.ok) {
+      setLibrary(prev => {
+        const updated = {}
+        for (const [status, entries] of Object.entries(prev)) {
+          updated[status] = entries.filter(e => e._id !== entryId)
+        }
+        return updated
+      })
+    }
+  }
+
+  if (loading) return (
+    <div>
+      <Navbar />
+      <div className="container" style={{ paddingTop: 32 }}>
+        <div className="card"><p className="muted">Loading profile…</p></div>
+      </div>
+    </div>
+  )
+
+  if (error || !profileUser) return (
+    <div>
+      <Navbar />
+      <div className="container" style={{ paddingTop: 32 }}>
+        <div className="card"><p className="error">{error || 'User not found.'}</p></div>
+      </div>
+    </div>
+  )
 
   return (
     <div>
@@ -277,7 +299,7 @@ export default function UserProfilePage() {
       <div className="container" style={{ paddingTop: 32, paddingBottom: 48 }}>
         <ProfileHeader profileUser={profileUser} isOwn={isOwn} />
         <StatsBar library={library} />
-        <LibrarySection library={library} isOwn={isOwn} />
+        <LibrarySection library={library} isOwn={isOwn} onRemove={handleRemoveFromLibrary} />
         <ReviewsSection reviews={reviews} />
         <GamingSetup profileUser={profileUser} isOwn={isOwn} />
       </div>
