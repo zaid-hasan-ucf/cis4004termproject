@@ -86,7 +86,6 @@ export default function Navbar() {
       <div className="navbar-left">
         <Link to="/home" className="navbar-brand">MyGameList</Link>
         <Link to="/home" className="nav-link">Home</Link>
-        <Link to="/search" className="nav-link">Browse</Link>
         <Link to="/library" className="nav-link">My Library</Link>
       </div>
 

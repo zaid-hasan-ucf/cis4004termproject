@@ -9,6 +9,7 @@ import UserProfilePage from './pages/UserProfilePage'
 import GameDetailPage from './pages/GameDetailPage'
 import AdminPage from './pages/adminPage'
 import SettingsPage from './pages/setings'
+import MyLibraryPage from './pages/MyLibraryPage'
 import './App.css'
 
 export default function App() {
@@ -24,12 +25,12 @@ export default function App() {
           <Route path="/home" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
           <Route path="/profile/:username" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+          <Route path="/library" element={<ProtectedRoute><MyLibraryPage /></ProtectedRoute>} />
 
           <Route path="/games/:id" element={<ProtectedRoute><GameDetailPage /></ProtectedRoute>} />
 
           {/* TODO: uncomment as pages are built */}
           {/* <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} /> */}
-          {/* <Route path="/library" element={<ProtectedRoute><MyLibraryPage /></ProtectedRoute>} /> */}
           {/* <Route path="/specs" element={<ProtectedRoute><PCSpecsPage /></ProtectedRoute>} /> */}
 
           {/* Admin only */}
