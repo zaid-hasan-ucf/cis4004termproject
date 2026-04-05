@@ -1,3 +1,5 @@
+// DISCLAIMER: Parts of this file were generated/modified using AI to simplify development due to the project's large scale. 
+
 const express = require('express')
 const { ObjectId } = require('mongodb');
 const router = express.Router()

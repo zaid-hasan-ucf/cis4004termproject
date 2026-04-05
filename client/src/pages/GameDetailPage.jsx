@@ -1,3 +1,5 @@
+// DISCLAIMER: Parts of this file were generated/modified using AI to simplify development due to the project's large scale. 
+
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
@@ -31,7 +33,8 @@ function mapPlatforms(platforms) {
   return result
 }
 
-function GameHeader({ game }) {
+function GameHeader({ game, user, libraryEntryId, onAddToLibrary, onRemoveFromLibrary }) {
+  const inLibrary = !!libraryEntryId
   return (
     <div className="game-detail-header card">
       <GameCover coverUrl={game.coverUrl} title={game.title} />
@@ -40,23 +43,23 @@ function GameHeader({ game }) {
         <p className="game-developer muted small">
           {game.developer} · {game.publisher}
         </p>
-
         <div className="pill-row">
           {game.genres.map((g) => <Pill key={g} name={g} className="genre-pill" />)}
         </div>
-
         <div className="pill-row">
           {game.platforms.map((p) => <Pill key={p} name={p} className="platform-pill" />)}
         </div>
-
         <div className="game-score-row">
           <div className="avg-score-display">
             <span className="avg-score-value">{game.avgRating}</span>
             <span className="avg-score-sub">/ 10 avg · {game.reviewCount} reviews</span>
           </div>
-          <Button>+ Add to Library</Button>
+          {user && (
+            inLibrary
+              ? <Button variant="ghost" onClick={onRemoveFromLibrary}>Remove from Library</Button>
+              : <Button onClick={onAddToLibrary}>+ Add to Library</Button>
+          )}
         </div>
-
       </div>
     </div>
   )
@@ -68,7 +71,6 @@ function GameDetailsSection({ game }) {
       <div className="section-header">
         <h2 className="section-heading">Game Details</h2>
       </div>
-
       <div className="game-extra-grid">
         <div className="card game-extra-card">
           <h3 className="game-extra-title">Categories</h3>
@@ -82,39 +84,27 @@ function GameDetailsSection({ game }) {
             )}
           </div>
         </div>
-
         <div className="card game-extra-card">
           <h3 className="game-extra-title">Supported Languages</h3>
           {game.supportedLanguages ? (
-            <div
-              className="steam-html-content"
-              dangerouslySetInnerHTML={{ __html: game.supportedLanguages }}
-            />
+            <div className="steam-html-content" dangerouslySetInnerHTML={{ __html: game.supportedLanguages }} />
           ) : (
             <p className="muted">No language data available.</p>
           )}
         </div>
       </div>
-
       <div className="card game-extra-card">
         <h3 className="game-extra-title">PC Requirements (Minimum)</h3>
         {game.pcRequirementsMinimum ? (
-          <div
-            className="steam-html-content"
-            dangerouslySetInnerHTML={{ __html: game.pcRequirementsMinimum }}
-          />
+          <div className="steam-html-content" dangerouslySetInnerHTML={{ __html: game.pcRequirementsMinimum }} />
         ) : (
           <p className="muted">No PC requirement data available.</p>
         )}
       </div>
-
       <div className="card game-extra-card">
         <h3 className="game-extra-title">About This Game</h3>
         {game.detailedDescription ? (
-          <div
-            className="steam-html-content"
-            dangerouslySetInnerHTML={{ __html: game.detailedDescription }}
-          />
+          <div className="steam-html-content" dangerouslySetInnerHTML={{ __html: game.detailedDescription }} />
         ) : (
           <p className="muted">No detailed description available.</p>
         )}
@@ -125,7 +115,7 @@ function GameDetailsSection({ game }) {
 
 function ReviewsSection({ reviews, onReviewSubmit, onDelete }) {
   const { user } = useAuth()
-  const [showForm, setShowForm]       = useState(false)
+  const [showForm, setShowForm]           = useState(false)
   const [editingReview, setEditingReview] = useState(null)
 
   const userReview = reviews.find((r) => r.userId === user?.id)
@@ -159,7 +149,6 @@ function ReviewsSection({ reviews, onReviewSubmit, onDelete }) {
           </Button>
         )}
       </div>
-
       {(showForm || editingReview) && (
         <ReviewForm
           initialRating={editingReview?.rating ?? 7}
@@ -168,7 +157,6 @@ function ReviewsSection({ reviews, onReviewSubmit, onDelete }) {
           onCancel={handleCancel}
         />
       )}
-
       <div className="reviews-list">
         {reviews.length === 0 && !showForm && (
           <div className="card">
@@ -176,12 +164,7 @@ function ReviewsSection({ reviews, onReviewSubmit, onDelete }) {
           </div>
         )}
         {reviews.map((review) => (
-          <ReviewCard
-            key={review._id}
-            review={review}
-            onEdit={handleEdit}
-            onDelete={onDelete}
-          />
+          <ReviewCard key={review._id} review={review} onEdit={handleEdit} onDelete={onDelete} />
         ))}
       </div>
     </section>
@@ -191,10 +174,11 @@ function ReviewsSection({ reviews, onReviewSubmit, onDelete }) {
 export default function GameDetailPage() {
   const { id } = useParams()
   const { user } = useAuth()
-  const [game, setGame]       = useState(null)
-  const [reviews, setReviews] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError]     = useState('')
+  const [game, setGame]                     = useState(null)
+  const [reviews, setReviews]               = useState([])
+  const [libraryEntryId, setLibraryEntryId] = useState(null)
+  const [loading, setLoading]               = useState(true)
+  const [error, setError]                   = useState('')
 
   useEffect(() => {
     async function fetchAll() {
@@ -202,10 +186,13 @@ export default function GameDetailPage() {
         setLoading(true)
         setError('')
 
-        const [gameRes, reviewsRes] = await Promise.all([
+        const requests = [
           apiFetch(`/games/${id}/details`),
           apiFetch(`/reviews/game/${id}`),
-        ])
+        ]
+        if (user?.id) requests.push(apiFetch(`/library/user/${user.id}`))
+
+        const [gameRes, reviewsRes, libraryRes] = await Promise.all(requests)
 
         if (!gameRes.ok) {
           const errData = await gameRes.json().catch(() => null)
@@ -216,25 +203,31 @@ export default function GameDetailPage() {
         const fetchedReviews = reviewsRes.ok ? await reviewsRes.json() : []
         setReviews(fetchedReviews)
 
+        if (libraryRes?.ok) {
+          const entries = await libraryRes.json()
+          const entry = entries.find(e => e.gameId === String(data._id))
+          setLibraryEntryId(entry?._id ?? null)
+        }
+
         const cached    = data.steamCached || {}
         const avgRating = fetchedReviews.length > 0
           ? (fetchedReviews.reduce((sum, r) => sum + r.rating, 0) / fetchedReviews.length).toFixed(1)
           : '—'
 
         setGame({
-          _id:                 data._id,
-          title:               data.title,
-          coverUrl:            cached.capsuleImage || cached.headerImage || null,
-          developer:           cached.developers?.join(', ') || 'Unknown Developer',
-          publisher:           cached.publishers?.join(', ') || 'Unknown Publisher',
-          genres:              cached.genres || [],
-          categories:          cached.categories || [],
-          platforms:           mapPlatforms(cached.platforms),
-          supportedLanguages:  cached.supportedLanguages || '',
+          _id:                   data._id,
+          title:                 data.title,
+          coverUrl:              cached.capsuleImage || cached.headerImage || null,
+          developer:             cached.developers?.join(', ') || 'Unknown Developer',
+          publisher:             cached.publishers?.join(', ') || 'Unknown Publisher',
+          genres:                cached.genres || [],
+          categories:            cached.categories || [],
+          platforms:             mapPlatforms(cached.platforms),
+          supportedLanguages:    cached.supportedLanguages || '',
           pcRequirementsMinimum: cached.pcRequirementsMinimum || '',
-          detailedDescription: cached.detailedDescription || '',
+          detailedDescription:   cached.detailedDescription || '',
           avgRating,
-          reviewCount:         fetchedReviews.length,
+          reviewCount:           fetchedReviews.length,
         })
       } catch (err) {
         console.error(err)
@@ -243,15 +236,44 @@ export default function GameDetailPage() {
         setLoading(false)
       }
     }
-
     fetchAll()
-  }, [id])
+  }, [id, user?.id])
 
   function recalcGame(updatedReviews) {
     const avg = updatedReviews.length > 0
       ? (updatedReviews.reduce((s, r) => s + r.rating, 0) / updatedReviews.length).toFixed(1)
       : '—'
     setGame(g => ({ ...g, avgRating: avg, reviewCount: updatedReviews.length }))
+  }
+
+  async function handleAddToLibrary() {
+    const userReview = reviews.find(r => r.userId === user.id)
+    const score = userReview ? userReview.rating : null
+    try {
+      const res = await apiFetch('/library/add', {
+        method: 'POST',
+        body: JSON.stringify({
+          userId: user.id,
+          gameId: String(game._id),
+          status: 'playing',
+          platform: '',
+          score,
+        }),
+      })
+      const data = await res.json()
+      if (res.ok) setLibraryEntryId(data.id)
+    } catch (err) {
+      console.error('Add to library failed:', err)
+    }
+  }
+
+  async function handleRemoveFromLibrary() {
+    try {
+      const res = await apiFetch(`/library/remove/${libraryEntryId}`, { method: 'DELETE' })
+      if (res.ok) setLibraryEntryId(null)
+    } catch (err) {
+      console.error('Remove from library failed:', err)
+    }
   }
 
   async function handleReviewSubmit({ rating, body, editing }) {
@@ -265,6 +287,12 @@ export default function GameDetailPage() {
           setReviews(prev => {
             const updated = prev.map(r => r._id === editing._id ? { ...r, rating, body } : r)
             recalcGame(updated)
+            if (libraryEntryId) {
+              apiFetch(`/library/update/${libraryEntryId}`, {
+                method: 'PUT',
+                body: JSON.stringify({ score: rating }),
+              })
+            }
             return updated
           })
         }
@@ -288,6 +316,12 @@ export default function GameDetailPage() {
             recalcGame(updated)
             return updated
           })
+          if (libraryEntryId) {
+            apiFetch(`/library/update/${libraryEntryId}`, {
+              method: 'PUT',
+              body: JSON.stringify({ score: rating }),
+            })
+          }
         }
       }
     } catch (err) {
@@ -304,6 +338,12 @@ export default function GameDetailPage() {
           recalcGame(updated)
           return updated
         })
+        if (libraryEntryId) {
+          apiFetch(`/library/update/${libraryEntryId}`, {
+            method: 'PUT',
+            body: JSON.stringify({ score: null }),
+          })
+        }
       }
     } catch (err) {
       console.error('Review delete failed:', err)
@@ -336,7 +376,13 @@ export default function GameDetailPage() {
     <div>
       <Navbar />
       <div className="container" style={{ paddingTop: 32, paddingBottom: 48 }}>
-        <GameHeader game={game} />
+        <GameHeader
+          game={game}
+          user={user}
+          libraryEntryId={libraryEntryId}
+          onAddToLibrary={handleAddToLibrary}
+          onRemoveFromLibrary={handleRemoveFromLibrary}
+        />
         <GameDetailsSection game={game} />
         <ReviewsSection
           reviews={reviews}

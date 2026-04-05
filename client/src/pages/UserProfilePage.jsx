@@ -1,29 +1,12 @@
+// DISCLAIMER: Parts of this file were generated/modified using AI to simplify development due to the project's large scale. 
+
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
 import Navbar from '../components/Navbar'
-import Button from '../components/Button'
 import ReviewCard from '../components/ReviewCard'
 import { apiFetch } from '../api/apiFetch'
 import { ALL_PLATFORMS, DEFAULT_AVATAR } from '../constants'
-
-const EMPTY_LIBRARY = { playing: [], completed: [], dropped: [], planned: [] }
-
-function groupLibrary(entries) {
-  const grouped = { playing: [], completed: [], dropped: [], planned: [] }
-  for (const e of entries) {
-    if (grouped[e.status]) grouped[e.status].push(e)
-  }
-  return grouped
-}
-
-const TABS = [
-  { key: 'playing',   label: 'Playing' },
-  { key: 'completed', label: 'Completed' },
-  { key: 'dropped',   label: 'Dropped' },
-  { key: 'planned',   label: 'Plan to Play' },
-]
-
 
 function getRatingClass(rating) {
   if (rating >= 8) return 'rating-great'
@@ -65,16 +48,10 @@ function StatItem({ value, label, colorClass }) {
 }
 
 function StatsBar({ library }) {
-  const total = Object.values(library).reduce((acc, arr) => acc + arr.length, 0)
-  const hours = Object.values(library).flat().reduce((acc, e) => acc + (e.hours || 0), 0)
   return (
     <div className="stats-bar">
-      <StatItem value={total} label="Total" />
-      <StatItem value={`${hours}h`} label="Hours" />
-      <StatItem value={library.playing.length}   label="Playing"   colorClass="stat-playing" />
-      <StatItem value={library.completed.length} label="Completed" colorClass="stat-completed" />
-      <StatItem value={library.dropped.length}   label="Dropped"   colorClass="stat-dropped" />
-      <StatItem value={library.planned.length}   label="Planned"   colorClass="stat-planned" />
+      <StatItem value={library.length} label="Total" />
+      <StatItem value={library.filter(e => e.status === 'playing').length} label="Playing" colorClass="stat-playing" />
     </div>
   )
 }
@@ -93,7 +70,6 @@ function LibraryRow({ entry, isOwn, onRemove }) {
           : <span className="muted small">—</span>
         }
       </td>
-      <td className="library-hours muted small">{entry.hours > 0 ? `${entry.hours}h` : '—'}</td>
       {isOwn && (
         <td className="library-actions">
           <button className="row-action-btn ghost-btn">Edit</button>
@@ -105,30 +81,12 @@ function LibraryRow({ entry, isOwn, onRemove }) {
 }
 
 function LibrarySection({ library, isOwn, onRemove }) {
-  const [activeTab, setActiveTab] = useState('playing')
-  const entries = library[activeTab] ?? []
-
   return (
     <section className="home-section">
       <div className="section-header">
         <h2 className="section-heading">Library</h2>
-        {isOwn && <Button variant="ghost">+ Add Game</Button>}
       </div>
-
-      <div className="library-tabs">
-        {TABS.map((tab) => (
-          <button
-            key={tab.key}
-            className={`library-tab ${activeTab === tab.key ? 'active' : ''}`}
-            onClick={() => setActiveTab(tab.key)}
-          >
-            {tab.label}
-            <span className="tab-count">{library[tab.key].length}</span>
-          </button>
-        ))}
-      </div>
-
-      {entries.length === 0 ? (
+      {library.length === 0 ? (
         <div className="card">
           <p className="muted">Nothing here yet.</p>
         </div>
@@ -141,12 +99,11 @@ function LibrarySection({ library, isOwn, onRemove }) {
                 <th>Title</th>
                 <th>Platform</th>
                 <th>Score</th>
-                <th>Hours</th>
                 {isOwn && <th />}
               </tr>
             </thead>
             <tbody>
-              {entries.map((entry) => (
+              {library.map((entry) => (
                 <LibraryRow key={entry._id} entry={entry} isOwn={isOwn} onRemove={onRemove} />
               ))}
             </tbody>
@@ -206,7 +163,6 @@ function GamingSetup({ profileUser, isOwn }) {
                 <PlatformPill key={p} name={p} owned={ownedSet.has(p)} />
               ))}
             </div>
-
             {hasPC && (specs.cpu || specs.gpu || specs.ram || specs.storage) && (
               <div className="specs-grid">
                 {[
@@ -236,7 +192,7 @@ export default function UserProfilePage() {
 
   const [profileUser, setProfileUser] = useState(null)
   const [reviews, setReviews]         = useState([])
-  const [library, setLibrary]         = useState(EMPTY_LIBRARY)
+  const [library, setLibrary]         = useState([])
   const [loading, setLoading]         = useState(true)
   const [error, setError]             = useState('')
 
@@ -253,7 +209,7 @@ export default function UserProfilePage() {
           apiFetch(`/library/user/${userData._id}`),
         ])
         if (rr.ok) setReviews(await rr.json())
-        if (lr.ok) setLibrary(groupLibrary(await lr.json()))
+        if (lr.ok) setLibrary(await lr.json())
       } catch {
         setError('Failed to load profile.')
       }
@@ -264,15 +220,7 @@ export default function UserProfilePage() {
 
   async function handleRemoveFromLibrary(entryId) {
     const res = await apiFetch(`/library/remove/${entryId}`, { method: 'DELETE' })
-    if (res.ok) {
-      setLibrary(prev => {
-        const updated = {}
-        for (const [status, entries] of Object.entries(prev)) {
-          updated[status] = entries.filter(e => e._id !== entryId)
-        }
-        return updated
-      })
-    }
+    if (res.ok) setLibrary(prev => prev.filter(e => e._id !== entryId))
   }
 
   if (loading) return (
