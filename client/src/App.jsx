@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import PageBackground from './components/PageBackground'
+import NotFoundPage from './pages/NotFoundPage'
 import ProtectedRoute from './components/ProtectedRoute'
 import AdminRoute from './components/AdminRoute'
 import LoginPage from './pages/LoginPage'
@@ -9,7 +10,7 @@ import HomePage from './pages/HomePage'
 import UserProfilePage from './pages/UserProfilePage'
 import GameDetailPage from './pages/GameDetailPage'
 import AdminPage from './pages/adminPage'
-import SettingsPage from './pages/setings'
+import SettingsPage from './pages/settings'
 import MyLibraryPage from './pages/MyLibraryPage'
 import './App.css'
 
@@ -37,6 +38,9 @@ export default function App() {
 
           {/* Admin only */}
           <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
+
+          {/* Catch-all */}
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

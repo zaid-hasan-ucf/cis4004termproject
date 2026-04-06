@@ -1,7 +1,7 @@
-const BASE = 'http://localhost:5000/api'
+import { API_BASE, apiFetch } from './apiFetch'
 
 export async function loginApi(username, password) {
-  const res = await fetch(`${BASE}/auth/login`, {
+  const res = await apiFetch('/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password }),
@@ -12,7 +12,7 @@ export async function loginApi(username, password) {
 }
 
 export async function registerApi(username, password) {
-  const res = await fetch(`${BASE}/auth/register`, {
+  const res = await apiFetch('/auth/register', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password }),

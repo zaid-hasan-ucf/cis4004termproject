@@ -98,6 +98,22 @@ router.delete('/delete/:id', requireAdmin, async (req, res) => {
   }
 });
 
+router.get('/recent', async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 12, 24)
+    const games = getDb().collection('games')
+    const results = await games
+      .find({})
+      .project({ title: 1, appid: 1, coverImage: 1 })
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .toArray()
+    res.json(results)
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch recent games' })
+  }
+})
+
 router.get('/steam-search', async (req, res) => {
   const q = (req.query.q || '').trim()
   if (q.length < 2) return res.json([])

@@ -65,11 +65,7 @@
   gap: 10px;
 }
 
-.settings-label {
-  font-size: 0.86rem;
-  font-weight: 700;
-  color: var(--text-secondary);
-}
+
 
 .settings-actions {
   margin-top: 8px;

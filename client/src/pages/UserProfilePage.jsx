@@ -247,7 +247,7 @@ export default function UserProfilePage() {
   if (loading) return (
     <div>
       <Navbar />
-      <div className="container" style={{ paddingTop: 32 }}>
+      <div className="container page-content">
         <div className="card"><p className="muted">Loading profile…</p></div>
       </div>
     </div>
@@ -256,7 +256,7 @@ export default function UserProfilePage() {
   if (error || !profileUser) return (
     <div>
       <Navbar />
-      <div className="container" style={{ paddingTop: 32 }}>
+      <div className="container page-content">
         <div className="card"><p className="error">{error || 'User not found.'}</p></div>
       </div>
     </div>
@@ -266,7 +266,7 @@ export default function UserProfilePage() {
     <>
       <div>
         <Navbar />
-        <div className="container" style={{ paddingTop: 32, paddingBottom: 48 }}>
+        <div className="container page-content">
           <ProfileHeader profileUser={profileUser} isOwn={isOwn} />
           <StatsBar library={library} />
           <LibrarySection library={library} isOwn={isOwn} onEdit={setEditingEntry} onRemove={handleRemoveFromLibrary} />

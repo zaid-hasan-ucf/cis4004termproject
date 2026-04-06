@@ -354,7 +354,7 @@ export default function GameDetailPage() {
     return (
       <div>
         <Navbar />
-        <div className="container" style={{ paddingTop: 32, paddingBottom: 48 }}>
+        <div className="container page-content">
           <div className="card"><p className="muted">Loading game details...</p></div>
         </div>
       </div>
@@ -365,7 +365,7 @@ export default function GameDetailPage() {
     return (
       <div>
         <Navbar />
-        <div className="container" style={{ paddingTop: 32, paddingBottom: 48 }}>
+        <div className="container page-content">
           <div className="card"><p className="error">{error || 'Game not found.'}</p></div>
         </div>
       </div>
@@ -375,7 +375,7 @@ export default function GameDetailPage() {
   return (
     <div>
       <Navbar />
-      <div className="container" style={{ paddingTop: 32, paddingBottom: 48 }}>
+      <div className="container page-content">
         <GameHeader
           game={game}
           user={user}
