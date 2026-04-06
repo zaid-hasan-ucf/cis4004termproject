@@ -583,7 +583,7 @@ function ReviewsTab() {
   )
 }
 
-// ─── STATS OVERVIEW ──────────────────────────────────────────────────────────
+//STATS OVERVIEW
 
 function StatsOverview({ stats }) {
   const cards = [
@@ -606,7 +606,7 @@ function StatsOverview({ stats }) {
   )
 }
 
-// ─── SHARED STYLES ───────────────────────────────────────────────────────────
+//  SHARED STYLES 
 
 const cardStyle = {
   background: '#1e1e2e', border: '1px solid #374151',
@@ -727,9 +727,9 @@ export default function AdminPage() {
             </div>
           </div>
         )}
-        {tab === 'Games'   && <GamesTab />}
-        {tab === 'Users'   && <UsersTab />}
-        {tab === 'Reviews' && <ReviewsTab />}
+        {tab === 'Games' && <GamesTab />}
+        {tab === 'Users' && <UsersTab />}
+        {tab === 'Reviews'&& <ReviewsTab />}
       </div>
     </>
   )
