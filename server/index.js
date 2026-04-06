@@ -5,17 +5,17 @@ const cors    = require('cors');
 require('dotenv').config();
 
 // Routes
-const authRoutes    = require('./routes/auth');
-const gamesRoutes   = require('./routes/games');
+const authRoutes = require('./routes/auth');
+const gamesRoutes= require('./routes/games');
 const reviewsRoutes = require('./routes/reviews');
 const usersRoutes   = require('./routes/users');
 const libraryRoutes = require('./routes/library');
 const uploadRoutes  = require('./routes/upload');
 const { attachCaller } = require('./middleware/roles');
 
-const PORT        = process.env.PORT        || 5000;
+const PORT = process.env.PORT        || 5000;
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
-const DB_NAME     = process.env.DB_NAME     || 'mygamelistdb';
+const DB_NAME = process.env.DB_NAME     || 'mygamelistdb';
 
 const app = express();
 app.use(express.json());
@@ -23,10 +23,10 @@ app.use(cors({ origin: true, credentials: false }));
 app.use('/uploads', express.static(path.join(__dirname, '../data/uploads')));
 app.use(attachCaller);
 
-app.use('/api/auth',    authRoutes);
-app.use('/api/games',   gamesRoutes);
-app.use('/api/reviews', reviewsRoutes);
-app.use('/api/users',   usersRoutes);
+app.use('/api/auth',authRoutes);
+app.use('/api/games',gamesRoutes);
+app.use('/api/reviews',reviewsRoutes);
+app.use('/api/users',usersRoutes);
 app.use('/api/library', libraryRoutes);
 app.use('/api/upload',  uploadRoutes);
 
