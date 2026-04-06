@@ -58,7 +58,7 @@ NOTES & TROUBLESHOOTING
 
 macOS Users:
   If running on macOS, turn off AirPlay temporarily.
-  AirPlay uses port 5555 and may conflict with the API server.
+  AirPlay uses port 5000 and may conflict with the API server.
 
 MongoDB Not in PATH:
   If mongod is not in your system PATH, start MongoDB manually

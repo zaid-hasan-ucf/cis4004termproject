@@ -52,5 +52,5 @@ This starts MongoDB (port 27017), the API server (port 5000), and the React fron
 
 ## Notes
 
-- **macOS:** If running on macOS, turn off AirPlay temporarily. AirPlay uses port 5555 and conflicts with the API server.
+- **macOS:** If running on macOS, turn off AirPlay temporarily. AirPlay uses port 5000 and conflicts with the API server.
 - **MongoDB:** If `mongod` is not in your PATH, start MongoDB manually before running setup.
