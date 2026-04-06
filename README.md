@@ -73,6 +73,8 @@ The client reads `client/.env`:
 |----------------|--------------------------------|--------------------|
 | `VITE_API_URL` | `http://localhost:5555/api`    | API base URL       |
 
+Site lives on http://localhost:5173
+
 > `npm run setup` automatically updates both files if a port conflict is detected.
 
 ---
@@ -93,6 +95,6 @@ The client reads `client/.env`:
 
 WARNING WARNING WARNING
 
-IF YOU ARE ON A MAC, TURN OFF AIRPLAY TEMPORARILY OTHERWISE THE BACKEND DOES NOT WORK.
+IF YOU ARE ON A MAC, TURN OFF AIRPLAY TEMPORARILY OTHERWISE THE BACKEND DOES NOT WORK! (We had this Issue)
 
 WARNING WARNING WARNING
