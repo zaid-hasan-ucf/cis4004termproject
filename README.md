@@ -73,7 +73,7 @@ The client reads `client/.env`:
 |----------------|--------------------------------|--------------------|
 | `VITE_API_URL` | `http://localhost:5555/api`    | API base URL       |
 
-Site lives on http://localhost:5173
+Site lives on - http://localhost:5173
 
 > `npm run setup` automatically updates both files if a port conflict is detected.
 
