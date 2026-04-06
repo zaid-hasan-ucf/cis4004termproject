@@ -7,6 +7,22 @@ const { getDb } = require('../db/connection')
 const { getSteamAppDetails } = require('../services/steamService')
 const { requireAdmin } = require('../middleware/roles')
 
+// Helper: Upsert publisher by name
+async function upsertPublisher(publisherName) {
+  if (!publisherName) return null;
+  const db = getDb();
+  const publishers = db.collection('publishers');
+  const normalized = publisherName.trim().toLowerCase();
+  const existing = await publishers.findOne({ normalizedName: normalized });
+  if (existing) return existing._id;
+  const result = await publishers.insertOne({
+    name: publisherName.trim(),
+    normalizedName: normalized,
+    createdAt: new Date(),
+  });
+  return result.insertedId;
+}
+
 router.get('/search', async (req, res) => {
   try {
     const q = (req.query.q || '').trim().toLowerCase()
@@ -52,11 +68,12 @@ router.post('/create', requireAdmin, async (req, res) => {
     const { title, coverImage, publisher, appid } = req.body;
     if (!title) return res.status(400).json({ error: 'Title is required' });
     const games = getDb().collection('games');
+    const publisherId = publisher ? (ObjectId.isValid(publisher) ? new ObjectId(publisher) : await upsertPublisher(publisher)) : null;
     const result = await games.insertOne({
       title,
       normalizedTitle: title.trim().toLowerCase(),
       coverImage: coverImage || '',
-      publisher: publisher ? new ObjectId(publisher) : null,
+      publisher: publisherId,
       ...(appid && { appid: Number(appid) }),
       createdAt: new Date(),
     });
@@ -70,13 +87,17 @@ router.put('/update/:id', requireAdmin, async (req, res) => {
   try {
     const { title, coverImage, publisher, appid } = req.body;
     const games = getDb().collection('games');
+    let publisherId = undefined;
+    if (publisher !== undefined) {
+      publisherId = ObjectId.isValid(publisher) ? new ObjectId(publisher) : await upsertPublisher(publisher);
+    }
     const result = await games.updateOne(
       { _id: new ObjectId(req.params.id) },
       { $set: {
-        ...(title      && { title, normalizedTitle: title.trim().toLowerCase() }),
-        ...(coverImage && { coverImage }),
-        ...(publisher  && { publisher: new ObjectId(publisher) }),
-        ...(appid      && { appid: Number(appid) }),
+        ...(title          && { title, normalizedTitle: title.trim().toLowerCase() }),
+        ...(coverImage     && { coverImage }),
+        ...(publisherId    && { publisher: publisherId }),
+        ...(appid          && { appid: Number(appid) }),
         updatedAt: new Date(),
       }}
     );
@@ -148,6 +169,12 @@ router.post('/import', async (req, res) => {
     const steamData = await getSteamAppDetails(Number(appid))
     if (!steamData) return res.status(404).json({ error: 'Game not found on Steam' })
 
+    // Extract and upsert publisher from Steam data
+    let publisherId = null
+    if (steamData.publishers && steamData.publishers.length > 0) {
+      publisherId = await upsertPublisher(steamData.publishers[0])
+    }
+
     const steamCached = {
       detailedDescription:   steamData.detailed_description || '',
       supportedLanguages:    steamData.supported_languages || '',
@@ -170,6 +197,7 @@ router.post('/import', async (req, res) => {
       normalizedTitle: steamData.name.trim().toLowerCase(),
       coverImage:      steamData.header_image || '',
       appid:           Number(appid),
+      publisher:       publisherId,
       steamCached,
       steamCachedAt:   new Date(),
       createdAt:       new Date(),
@@ -251,6 +279,16 @@ router.post('/import', async (req, res) => {
   } catch (err) {
       console.error('Failed to fetch game details:', err);
       return res.status(500).json({ error: 'Failed to fetch game details' });
+  }
+});
+
+router.get('/publishers', async (_req, res) => {
+  try {
+    const publishers = getDb().collection('publishers');
+    const all = await publishers.find({}).sort({ name: 1 }).toArray();
+    res.json(all);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch publishers' });
   }
 });
 

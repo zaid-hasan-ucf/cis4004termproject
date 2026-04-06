@@ -92,12 +92,12 @@ function GamesTab() {
   const [page, setPage] = useState(1)
 
   // create form
-  const [createForm, setCreateForm] = useState({ title: '', appid: '' })
+  const [createForm, setCreateForm] = useState({ title: '', appid: '', publisher: '' })
   const [creating, setCreating] = useState(false)
 
   // edit modal
   const [editTarget, setEditTarget] = useState(null)
-  const [editForm, setEditForm] = useState({ title: '', appid: '' })
+  const [editForm, setEditForm] = useState({ title: '', appid: '', publisher: '' })
 
   async function load() {
     setLoading(true)
@@ -124,12 +124,16 @@ function GamesTab() {
       const res = await apiFetch(`/games/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: createForm.title, appid: Number(createForm.appid) || undefined }),
+        body: JSON.stringify({ 
+          title: createForm.title, 
+          appid: Number(createForm.appid) || undefined,
+          publisher: createForm.publisher || undefined,
+        }),
       })
       const data = await res.json()
       if (!res.ok) return setStatus(`Error: ${data.error}`)
       setStatus('Game created successfully')
-      setCreateForm({ title: '', appid: '' })
+      setCreateForm({ title: '', appid: '', publisher: '' })
       load()
     } catch {
       setStatus('Error: failed to create game')
@@ -140,7 +144,7 @@ function GamesTab() {
 
   function openEdit(game) {
     setEditTarget(game)
-    setEditForm({ title: game.title, appid: game.appid || '' })
+    setEditForm({ title: game.title, appid: game.appid || '', publisher: game.publisher || '' })
   }
 
   async function handleEdit(e) {
@@ -149,7 +153,11 @@ function GamesTab() {
       const res = await apiFetch(`/games/update/${editTarget._id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: editForm.title, appid: Number(editForm.appid) || undefined }),
+        body: JSON.stringify({ 
+          title: editForm.title, 
+          appid: Number(editForm.appid) || undefined,
+          publisher: editForm.publisher || undefined,
+        }),
       })
       const data = await res.json()
       if (!res.ok) return setStatus(`Error: ${data.error}`)
@@ -192,6 +200,10 @@ function GamesTab() {
           <input
             style={{ ...inputStyle, width: 140 }} placeholder="Steam AppID"
             value={createForm.appid} onChange={e => setCreateForm(p => ({ ...p, appid: e.target.value }))}
+          />
+          <input
+            style={inputStyle} placeholder="Publisher"
+            value={createForm.publisher} onChange={e => setCreateForm(p => ({ ...p, publisher: e.target.value }))}
           />
           <button type="submit" disabled={creating} style={submitBtnStyle}>
             {creating ? 'Adding…' : '+ Add Game'}
@@ -257,6 +269,11 @@ function GamesTab() {
               <label style={labelStyle}>Steam AppID</label>
               <input style={inputStyle} value={editForm.appid}
                 onChange={e => setEditForm(p => ({ ...p, appid: e.target.value }))} />
+            </div>
+            <div>
+              <label style={labelStyle}>Publisher</label>
+              <input style={inputStyle} value={editForm.publisher}
+                onChange={e => setEditForm(p => ({ ...p, publisher: e.target.value }))} />
             </div>
             <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
               <button type="button" onClick={() => setEditTarget(null)} style={cancelBtnStyle}>Cancel</button>

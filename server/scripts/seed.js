@@ -53,9 +53,23 @@ async function seed() {
     ]);
 
     // ── Publishers ──────────────────────────────────────────────────────────
-    const { insertedId: publisherId } = await publishers.insertOne({
-      name: "Imported/Seed Publisher",
-    });
+    const publisherDocs = [
+      { name: "Valve", normalizedName: "valve" },
+      { name: "Capcom", normalizedName: "capcom" },
+      { name: "FromSoftware", normalizedName: "fromsoftware" },
+      { name: "Team Cherry", normalizedName: "team cherry" },
+      { name: "CelebRyth", normalizedName: "celebryth" },
+      { name: "Hazelight Studios", normalizedName: "hazelight studios" },
+      { name: "Supergiant Games", normalizedName: "supergiant games" },
+    ].map(p => ({ ...p, createdAt: new Date() }));
+    
+    await publishers.insertMany(publisherDocs);
+    const pubMap = {};
+    for (const doc of publisherDocs) {
+      const found = await publishers.findOne({ normalizedName: doc.normalizedName });
+      pubMap[doc.name] = found._id;
+    }
+    const publisherId = pubMap["Valve"]; // Use Valve as default for seeded games
 
     // ── Games (from JSON) ────────────────────────────────────────────────────
     const rawJson    = fs.readFileSync(GAMES_JSON_PATH, "utf8");
@@ -85,6 +99,7 @@ async function seed() {
 
     await games.createIndex({ appid: 1 }, { unique: true });
     await games.createIndex({ normalizedTitle: 1 });
+    await publishers.createIndex({ normalizedName: 1 }, { unique: true });
     await reviews.createIndex({ user: 1, game: 1 }, { unique: true });
     await reviews.createIndex({ game: 1 });
     await reviews.createIndex({ user: 1 });
