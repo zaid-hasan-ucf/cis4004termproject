@@ -71,6 +71,10 @@
   border-radius: 999px;
   padding: 0.35rem 0.9rem;
   font-size: 0.82rem;
+  font-family: inherit;
+  font-weight: normal;
+  cursor: pointer;
+  transition: all 0.2s ease;
   text-transform: none;
   letter-spacing: 0;
 }
@@ -78,7 +82,8 @@
 .my-library-filter-btn:hover {
   border-color: var(--primary);
   color: var(--text-primary);
-  transform: none;
+  transform: scale(1.05);
+  background: rgba(96, 165, 250, 0.08);
   box-shadow: none;
 }
 
@@ -86,6 +91,7 @@
   background: rgba(96, 165, 250, 0.14);
   border-color: rgba(96, 165, 250, 0.4);
   color: var(--primary-hover);
+  transform: none;
 }
 
 .my-library-list {

@@ -119,6 +119,35 @@ input:focus, textarea:focus, select:focus {
   box-shadow: 0 0 12px rgba(0, 217, 255, 0.2);
 }
 
+/* Sort/Filter Select */
+.sort-select {
+  border: 1px solid var(--border);
+  background: var(--bg-surface) !important;
+  color: var(--text-secondary);
+  border-radius: 999px;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.82rem;
+  font-family: inherit;
+  font-weight: normal;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.sort-select:hover {
+  border-color: var(--primary);
+  color: var(--text-primary);
+  transform: scale(1.05);
+}
+
+.sort-select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 8px rgba(96, 165, 250, 0.3);
+  transform: scale(1.05);
+}
+
 /* ============================================
    LAYOUT
    ============================================ */
@@ -161,6 +190,35 @@ input:focus, textarea:focus, select:focus {
   letter-spacing: 0;
 }
 .ghost-btn:hover { border-color: var(--primary); color: var(--text-primary); background: rgba(0, 217, 255, 0.05); transform: none; box-shadow: none; }
+
+/* Pagination & Filter Button Styling */
+.pagination button {
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  border-radius: 999px;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.82rem;
+  font-family: inherit;
+  font-weight: normal;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.pagination button:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--text-primary);
+  transform: scale(1.05);
+  background: rgba(96, 165, 250, 0.08);
+}
+
+.pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
 
 /* ============================================
    COMPONENT: CARD

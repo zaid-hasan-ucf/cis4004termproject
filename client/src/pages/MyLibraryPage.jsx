@@ -69,6 +69,7 @@ function LibraryEntry({ entry, onEdit, onRemove }) {
 export default function MyLibraryPage() {
   const { user } = useAuth()
   const [activeStatus,    setActiveStatus]    = useState('all')
+  const [sortBy,          setSortBy]          = useState('title')
   const [libraryEntries,  setLibraryEntries]  = useState([])
   const [loading,         setLoading]         = useState(true)
   const [error,           setError]           = useState('')
@@ -93,6 +94,16 @@ export default function MyLibraryPage() {
     if (activeStatus === 'all') return libraryEntries
     return libraryEntries.filter((item) => item.status === activeStatus)
   }, [activeStatus, libraryEntries])
+
+  const sortedEntries = useMemo(() => {
+    const copy = [...filteredEntries]
+    if (sortBy === 'title') copy.sort((a, b) => a.gameTitle.localeCompare(b.gameTitle))
+    else if (sortBy === 'score') copy.sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+    else if (sortBy === 'hours') copy.sort((a, b) => b.hours - a.hours)
+    else if (sortBy === 'date-new') copy.reverse()
+    else if (sortBy === 'date-old') copy.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+    return copy
+  }, [filteredEntries, sortBy])
 
   const stats = useMemo(() => ({
     total:     libraryEntries.length,
@@ -151,6 +162,18 @@ export default function MyLibraryPage() {
               {tab.label}
             </button>
           ))}
+          <select 
+            className="sort-select" 
+            value={sortBy} 
+            onChange={(e) => setSortBy(e.target.value)}
+            style={{ marginLeft: 'auto' }}
+          >
+            <option value="date-new">Recent</option>
+            <option value="title">Title</option>
+            <option value="score">Score</option>
+            <option value="hours">Hours</option>
+            <option value="date-old">Oldest</option>
+          </select>
         </section>
 
         <section className="my-library-list">
@@ -158,8 +181,8 @@ export default function MyLibraryPage() {
             <div className="card"><p className="muted">Loading…</p></div>
           ) : error ? (
             <div className="card"><p className="error">{error}</p></div>
-          ) : filteredEntries.length > 0 ? (
-            filteredEntries.map((entry) => (
+          ) : sortedEntries.length > 0 ? (
+            sortedEntries.map((entry) => (
               <LibraryEntry
                 key={entry._id}
                 entry={entry}

@@ -1,6 +1,6 @@
 // DISCLAIMER: Parts of this file were generated/modified using AI to simplify development due to the project's large scale. 
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
 import Navbar from '../components/Navbar'
@@ -90,40 +90,93 @@ function LibraryRow({ entry, isOwn, onEdit, onRemove }) {
 }
 
 function LibrarySection({ library, isOwn, onEdit, onRemove }) {
+  const [sortBy, setSortBy] = useState('recent')
+  const [page, setPage] = useState(1)
+  const ITEMS_PER_PAGE = 10
+
+  const sorted = useMemo(() => {
+    const copy = [...library]
+    if (sortBy === 'recent') copy.reverse()
+    else if (sortBy === 'title') copy.sort((a, b) => a.gameTitle.localeCompare(b.gameTitle))
+    else if (sortBy === 'score') copy.sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+    else if (sortBy === 'hours') copy.sort((a, b) => b.hours - a.hours)
+    else if (sortBy === 'status') copy.sort((a, b) => a.status.localeCompare(b.status))
+    return copy
+  }, [library, sortBy])
+
+  const totalPages = Math.ceil(sorted.length / ITEMS_PER_PAGE)
+  const start = (page - 1) * ITEMS_PER_PAGE
+  const paginated = sorted.slice(start, start + ITEMS_PER_PAGE)
+
   return (
     <section className="home-section">
       <div className="section-header">
-        <h2 className="section-heading">Library</h2>
+        <h2 className="section-heading">Library ({library.length})</h2>
+        {library.length > 0 && (
+          <select className="sort-select" value={sortBy} onChange={(e) => { setSortBy(e.target.value); setPage(1) }}>
+            <option value="recent">Recent</option>
+            <option value="title">Title</option>
+            <option value="score">Score</option>
+            <option value="hours">Hours</option>
+            <option value="status">Status</option>
+          </select>
+        )}
       </div>
       {library.length === 0 ? (
         <div className="card">
           <p className="muted">Nothing here yet.</p>
         </div>
       ) : (
-        <div className="library-table-wrap card">
-          <table className="library-table">
-            <thead>
-              <tr>
-                <th />
-                <th>Title</th>
-                <th>Platform</th>
-                <th>Score</th>
-                {isOwn && <th />}
-              </tr>
-            </thead>
-            <tbody>
-              {library.map((entry) => (
-                <LibraryRow key={entry._id} entry={entry} isOwn={isOwn} onEdit={onEdit} onRemove={onRemove} />
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <>
+          <div className="library-table-wrap card">
+            <table className="library-table">
+              <thead>
+                <tr>
+                  <th />
+                  <th>Title</th>
+                  <th>Platform</th>
+                  <th>Score</th>
+                  {isOwn && <th />}
+                </tr>
+              </thead>
+              <tbody>
+                {paginated.map((entry) => (
+                  <LibraryRow key={entry._id} entry={entry} isOwn={isOwn} onEdit={onEdit} onRemove={onRemove} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {totalPages > 1 && (
+            <div className="pagination" style={{ marginTop: '1rem', textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1rem' }}>
+              <button disabled={page === 1} onClick={() => setPage(page - 1)}>← Prev</button>
+              <span style={{ color: 'var(--text-secondary)' }}>{page} / {totalPages}</span>
+              <button disabled={page === totalPages} onClick={() => setPage(page + 1)}>Next →</button>
+            </div>
+          )}
+        </>
       )}
     </section>
   )
 }
 
 function ReviewsSection({ reviews }) {
+  const [sortBy, setSortBy] = useState('recent')
+  const [page, setPage] = useState(1)
+  const ITEMS_PER_PAGE = 10
+
+  const sorted = useMemo(() => {
+    const copy = [...reviews]
+    if (sortBy === 'recent') copy.reverse()
+    else if (sortBy === 'rating-high') copy.sort((a, b) => b.rating - a.rating)
+    else if (sortBy === 'rating-low') copy.sort((a, b) => a.rating - b.rating)
+    else if (sortBy === 'title') copy.sort((a, b) => a.gameTitle.localeCompare(b.gameTitle))
+    return copy
+  }, [reviews, sortBy])
+
+  const totalPages = Math.ceil(sorted.length / ITEMS_PER_PAGE)
+  const start = (page - 1) * ITEMS_PER_PAGE
+  const paginated = sorted.slice(start, start + ITEMS_PER_PAGE)
+
   if (reviews.length === 0) return null
   return (
     <section className="home-section">
@@ -131,12 +184,27 @@ function ReviewsSection({ reviews }) {
         <h2 className="section-heading">
           Reviews <span className="review-count">({reviews.length})</span>
         </h2>
+        {reviews.length > 0 && (
+          <select className="sort-select" value={sortBy} onChange={(e) => { setSortBy(e.target.value); setPage(1) }}>
+            <option value="recent">Recent</option>
+            <option value="rating-high">Highest Rated</option>
+            <option value="rating-low">Lowest Rated</option>
+            <option value="title">Game Title</option>
+          </select>
+        )}
       </div>
       <div className="reviews-list">
-        {reviews.map((r) => (
+        {paginated.map((r) => (
           <ReviewCard key={r._id} review={r} showGame />
         ))}
       </div>
+      {totalPages > 1 && (
+        <div className="pagination" style={{ marginTop: '1rem', textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1rem' }}>
+          <button disabled={page === 1} onClick={() => setPage(page - 1)}>← Prev</button>
+          <span style={{ color: 'var(--text-secondary)' }}>{page} / {totalPages}</span>
+          <button disabled={page === totalPages} onClick={() => setPage(page + 1)}>Next →</button>
+        </div>
+      )}
     </section>
   )
 }
