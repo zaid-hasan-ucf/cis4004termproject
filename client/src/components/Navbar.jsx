@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
 import { DEFAULT_AVATAR } from '../constants'
 
@@ -85,8 +85,8 @@ export default function Navbar() {
     <nav className="navbar">
       <div className="navbar-left">
         <Link to="/home" className="navbar-brand">MyGameList</Link>
-        <Link to="/home" className="nav-link">Home</Link>
-        <Link to="/library" className="nav-link">My Library</Link>
+        <NavLink to="/home" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>Home</NavLink>
+        <NavLink to="/library" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>My Library</NavLink>
       </div>
 
       <div className="navbar-right">

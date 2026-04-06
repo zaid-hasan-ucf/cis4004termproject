@@ -19,6 +19,7 @@ router.get('/user/:userId', async (req, res) => {
         gameTitle: { $ifNull: [{ $arrayElemAt: ['$gameDoc.title', 0] }, 'Unknown'] },
         gameId:    { $toString: { $arrayElemAt: ['$gameDoc._id', 0] } },
         coverUrl:  { $ifNull: [{ $arrayElemAt: ['$gameDoc.coverImage', 0] }, null] },
+        appid:     { $arrayElemAt: ['$gameDoc.appid', 0] },
       }},
       { $project: { gameDoc: 0 } },
     ]).toArray();

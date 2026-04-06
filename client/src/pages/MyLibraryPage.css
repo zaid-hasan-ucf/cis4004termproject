@@ -83,10 +83,19 @@
 
 .my-library-entry {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: auto 1fr auto;
   column-gap: 14px;
   row-gap: 6px;
   align-items: center;
+}
+
+.my-library-cover {
+  width: 80px;
+  height: 30px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+  display: block;
 }
 
 .my-library-entry-main h3 {
@@ -156,7 +165,10 @@
   }
 
   .my-library-entry {
-    grid-template-columns: 1fr;
+    grid-template-columns: auto 1fr;
+  }
+  .my-library-entry-meta {
+    grid-column: 1 / -1;
   }
 
   .my-library-entry-meta {

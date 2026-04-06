@@ -33,7 +33,7 @@ router.get('/search', async (req, res) => {
   }
 })
 
-router.get('/all', async (req, res) => {
+router.get('/all', async (_req, res) => {
   try {
     const games = getDb().collection('games');
     const all = await games
@@ -97,6 +97,74 @@ router.delete('/delete/:id', requireAdmin, async (req, res) => {
     res.status(500).json({ error: 'Failed to delete game' });
   }
 });
+
+router.get('/steam-search', async (req, res) => {
+  const q = (req.query.q || '').trim()
+  if (q.length < 2) return res.json([])
+  try {
+    const steamRes = await fetch(
+      `https://store.steampowered.com/api/storesearch/?term=${encodeURIComponent(q)}&l=english&cc=US`
+    )
+    if (!steamRes.ok) return res.json([])
+    const data = await steamRes.json()
+    const items = (data.items || []).slice(0, 8).map(item => ({
+      appid: item.id,
+      title: item.name,
+      tinyImage: item.tiny_image,
+    }))
+    res.json(items)
+  } catch {
+    res.json([])
+  }
+})
+
+router.post('/import', async (req, res) => {
+  if (!req.callerId) return res.status(401).json({ error: 'Authentication required' })
+  const { appid } = req.body
+  if (!appid) return res.status(400).json({ error: 'appid is required' })
+  try {
+    const db = getDb()
+    const games = db.collection('games')
+
+    const existing = await games.findOne({ appid: Number(appid) })
+    if (existing) return res.json({ id: existing._id })
+
+    const steamData = await getSteamAppDetails(Number(appid))
+    if (!steamData) return res.status(404).json({ error: 'Game not found on Steam' })
+
+    const steamCached = {
+      detailedDescription:   steamData.detailed_description || '',
+      supportedLanguages:    steamData.supported_languages || '',
+      headerImage:           steamData.header_image || '',
+      capsuleImage:          steamData.capsule_image || '',
+      pcRequirementsMinimum: steamData.pc_requirements?.minimum || '',
+      developers:            steamData.developers || [],
+      publishers:            steamData.publishers || [],
+      platforms: {
+        windows: !!steamData.platforms?.windows,
+        mac:     !!steamData.platforms?.mac,
+        linux:   !!steamData.platforms?.linux,
+      },
+      categories: (steamData.categories || []).map(c => c.description),
+      genres:     (steamData.genres     || []).map(g => g.description),
+    }
+
+    const result = await games.insertOne({
+      title:           steamData.name,
+      normalizedTitle: steamData.name.trim().toLowerCase(),
+      coverImage:      steamData.header_image || '',
+      appid:           Number(appid),
+      steamCached,
+      steamCachedAt:   new Date(),
+      createdAt:       new Date(),
+    })
+
+    res.status(201).json({ id: result.insertedId })
+  } catch (err) {
+    console.error('Game import failed:', err)
+    res.status(500).json({ error: 'Failed to import game' })
+  }
+})
 
  router.get('/:id/details', async (req, res) => {
   try {

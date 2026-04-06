@@ -5,8 +5,13 @@ import { useParams, Link } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
 import Navbar from '../components/Navbar'
 import ReviewCard from '../components/ReviewCard'
+import LibraryEditModal from '../components/LibraryEditModal'
 import { apiFetch } from '../api/apiFetch'
 import { ALL_PLATFORMS, DEFAULT_AVATAR } from '../constants'
+
+function getSteamThumb(appid) {
+  return `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${appid}/capsule_sm_120.jpg`
+}
 
 function getRatingClass(rating) {
   if (rating >= 8) return 'rating-great'
@@ -56,14 +61,18 @@ function StatsBar({ library }) {
   )
 }
 
-function LibraryRow({ entry, isOwn, onRemove }) {
+function LibraryRow({ entry, isOwn, onEdit, onRemove }) {
+  const thumb = entry.coverUrl || (entry.appid ? getSteamThumb(entry.appid) : null)
   return (
     <tr className="library-row">
       <td className="library-cover-cell">
-        <div className="cover-sm" />
+        {thumb
+          ? <img src={thumb} alt={entry.gameTitle} className="cover-sm-img" loading="lazy" />
+          : <div className="cover-sm" />
+        }
       </td>
       <td className="library-title">{entry.gameTitle}</td>
-      <td className="library-platform">{entry.platform}</td>
+      <td className="library-platform">{entry.platform || '—'}</td>
       <td className="library-score">
         {entry.score != null
           ? <span className={`score-badge ${getRatingClass(entry.score)}`}>{entry.score}</span>
@@ -72,7 +81,7 @@ function LibraryRow({ entry, isOwn, onRemove }) {
       </td>
       {isOwn && (
         <td className="library-actions">
-          <button className="row-action-btn ghost-btn">Edit</button>
+          <button className="row-action-btn ghost-btn" onClick={() => onEdit(entry)}>Edit</button>
           <button className="row-action-btn ghost-btn danger-btn" onClick={() => onRemove(entry._id)}>Remove</button>
         </td>
       )}
@@ -80,7 +89,7 @@ function LibraryRow({ entry, isOwn, onRemove }) {
   )
 }
 
-function LibrarySection({ library, isOwn, onRemove }) {
+function LibrarySection({ library, isOwn, onEdit, onRemove }) {
   return (
     <section className="home-section">
       <div className="section-header">
@@ -104,7 +113,7 @@ function LibrarySection({ library, isOwn, onRemove }) {
             </thead>
             <tbody>
               {library.map((entry) => (
-                <LibraryRow key={entry._id} entry={entry} isOwn={isOwn} onRemove={onRemove} />
+                <LibraryRow key={entry._id} entry={entry} isOwn={isOwn} onEdit={onEdit} onRemove={onRemove} />
               ))}
             </tbody>
           </table>
@@ -190,11 +199,12 @@ export default function UserProfilePage() {
   const { user } = useAuth()
   const isOwn = user?.username === username
 
-  const [profileUser, setProfileUser] = useState(null)
-  const [reviews, setReviews]         = useState([])
-  const [library, setLibrary]         = useState([])
-  const [loading, setLoading]         = useState(true)
-  const [error, setError]             = useState('')
+  const [profileUser,  setProfileUser]  = useState(null)
+  const [reviews,      setReviews]      = useState([])
+  const [library,      setLibrary]      = useState([])
+  const [loading,      setLoading]      = useState(true)
+  const [error,        setError]        = useState('')
+  const [editingEntry, setEditingEntry] = useState(null)
 
   useEffect(() => {
     async function load() {
@@ -223,6 +233,17 @@ export default function UserProfilePage() {
     if (res.ok) setLibrary(prev => prev.filter(e => e._id !== entryId))
   }
 
+  async function handleUpdateLibraryEntry(entryId, fields) {
+    const res = await apiFetch(`/library/update/${entryId}`, {
+      method: 'PUT',
+      body: JSON.stringify(fields),
+    })
+    if (res.ok) {
+      setLibrary(prev => prev.map(e => e._id === entryId ? { ...e, ...fields } : e))
+      setEditingEntry(null)
+    }
+  }
+
   if (loading) return (
     <div>
       <Navbar />
@@ -242,15 +263,25 @@ export default function UserProfilePage() {
   )
 
   return (
-    <div>
-      <Navbar />
-      <div className="container" style={{ paddingTop: 32, paddingBottom: 48 }}>
-        <ProfileHeader profileUser={profileUser} isOwn={isOwn} />
-        <StatsBar library={library} />
-        <LibrarySection library={library} isOwn={isOwn} onRemove={handleRemoveFromLibrary} />
-        <ReviewsSection reviews={reviews} />
-        <GamingSetup profileUser={profileUser} isOwn={isOwn} />
+    <>
+      <div>
+        <Navbar />
+        <div className="container" style={{ paddingTop: 32, paddingBottom: 48 }}>
+          <ProfileHeader profileUser={profileUser} isOwn={isOwn} />
+          <StatsBar library={library} />
+          <LibrarySection library={library} isOwn={isOwn} onEdit={setEditingEntry} onRemove={handleRemoveFromLibrary} />
+          <ReviewsSection reviews={reviews} />
+          <GamingSetup profileUser={profileUser} isOwn={isOwn} />
+        </div>
       </div>
-    </div>
+
+      {editingEntry && (
+        <LibraryEditModal
+          entry={editingEntry}
+          onSave={handleUpdateLibraryEntry}
+          onClose={() => setEditingEntry(null)}
+        />
+      )}
+    </>
   )
 }
