@@ -24,7 +24,7 @@ function RouteHandler() {
     const now = new Date()
     const triggerTime = new Date('2026-04-07T12:55:00') 
 
-    if (now >= triggerTime && Math.random() < 0.10) {
+    if (now >= triggerTime && Math.random() < 0.20) {
       setShowOverlay(true)
     }
   }, [location.pathname, setShowOverlay])
